@@ -3,6 +3,14 @@
     <fontFamily name="Roboto">
         <normalFont><![CDATA[fonts/Roboto-Regular.ttf]]></normalFont>
         <boldFont><![CDATA[fonts/Roboto-Bold.ttf]]></boldFont>
+        <italicFont><![CDATA[fonts/Roboto-Regular.ttf]]></italicFont>
+        <boldItalicFont><![CDATA[fonts/Roboto-Bold.ttf]]></boldItalicFont>
+
+        <normalPdfFont><![CDATA[fonts/Roboto-Regular.ttf]]></normalPdfFont>
+        <boldPdfFont><![CDATA[fonts/Roboto-Bold.ttf]]></boldPdfFont>
+        <italicPdfFont><![CDATA[fonts/Roboto-Regular.ttf]]></italicPdfFont>
+        <boldItalicPdfFont><![CDATA[fonts/Roboto-Bold.ttf]]></boldItalicPdfFont>
+
         <pdfEncoding><![CDATA[Identity-H]]></pdfEncoding>
         <pdfEmbedded><![CDATA[true]]></pdfEmbedded>
     </fontFamily>
