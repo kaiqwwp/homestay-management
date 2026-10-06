@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,9 +20,10 @@ public class ReportService {
     public byte[] exportPdf(String jrxmlName, Map<String, Object> params, Collection<?> data) {
         try {
             JasperReport report = cache.computeIfAbsent(jrxmlName, this::compile);
-            JasperPrint print = JasperFillManager.fillReport(
-                    report, params, new JRBeanCollectionDataSource(data));
-            return JasperExportManager.exportReportToPdf(print);
+Map<String, Object> safeParams = new HashMap<>(params);   // bản sao có thể sửa được
+JasperPrint print = JasperFillManager.fillReport(
+        report, safeParams, new JRBeanCollectionDataSource(data));
+return JasperExportManager.exportReportToPdf(print);
         } catch (JRException e) {
             throw new IllegalStateException("Lỗi xuất báo cáo " + jrxmlName + ": " + e.getMessage(), e);
         }
