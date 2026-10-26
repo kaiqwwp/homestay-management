@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý khách hàng')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-people text-success me-2"></i>Quản lý Khách hàng</h3>
+                <p class="text-muted small mb-0">Hồ sơ thông tin lưu trú, số điện thoại và định danh cá nhân</p>
+            </div>
+            <div>
+                <a th:href="@{/customers/new}" class="btn btn-primary rounded-pill">
+                    <i class="bi bi-person-plus me-1"></i> Thêm khách hàng mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card card-custom p-3 mb-4 shadow-sm">
+            <form th:action="@{/customers}" method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" th:value="${keyword}" class="form-control border-start-0" placeholder="Tìm theo tên, SĐT hoặc CCCD...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100 rounded-pill">Tìm kiếm</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="card card-custom p-0 overflow-hidden shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã KH</th>
+                            <th>Họ và tên</th>
+                            <th>Số điện thoại</th>
+                            <th>Email</th>
+                            <th>CCCD / Hộ chiếu</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${customerPage.content}">
+                            <td class="ps-4 fw-semibold text-muted" th:text="${c.id}">1</td>
+                            <td class="fw-bold text-dark" th:text="${c.fullName}">Nguyễn Văn A</td>
+                            <td>
+                                <a th:href="'tel:' + ${c.phone}" class="text-decoration-none text-dark">
+                                    <i class="bi bi-telephone-fill text-muted me-1"></i>
+                                    <span th:text="${c.phone}">0900000001</span>
+                                </a>
+                            </td>
+                            <td>
+                                <span th:if="${c.email != null and !c.email.isEmpty()}">
+                                    <i class="bi bi-envelope text-muted me-1"></i>
+                                    <span th:text="${c.email}">email@example.com</span>
+                                </span>
+                                <span th:if="${c.email == null or c.email.isEmpty()}" class="text-muted">-</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border" th:text="${c.idNumber != null ? c.idNumber : 'Chưa có'}">001200000001</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a th:href="@{/customers/{id}/edit(id=${c.id})}" class="btn btn-sm btn-outline-primary rounded-pill me-1">
+                                    <i class="bi bi-pencil"></i> Sửa
+                                </a>
+                                <form th:action="@{/customers/{id}/delete(id=${c.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa khách hàng này?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${customerPage.empty}">
+                            <td colspan="6" class="text-center py-4 text-muted">Không tìm thấy khách hàng nào.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${customerPage.totalPages > 1}" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+                <li class="page-item" th:classappend="${customerPage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/customers(page=${customerPage.number - 1}, keyword=${keyword})}">Trước</a>
+                </li>
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, customerPage.totalPages - 1)}"
+                    th:classappend="${customerPage.number == i ? 'active' : ''}">
+                    <a class="page-link" th:href="@{/customers(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${customerPage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/customers(page=${customerPage.number + 1}, keyword=${keyword})}">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

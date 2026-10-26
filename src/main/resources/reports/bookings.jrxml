@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="bookings_report" pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="title" class="java.lang.String"/>
+    <parameter name="generatedDate" class="java.lang.String"/>
+
+    <field name="id" class="java.lang.Long"/>
+    <field name="customerName" class="java.lang.String"/>
+    <field name="phone" class="java.lang.String"/>
+    <field name="roomNumber" class="java.lang.String"/>
+    <field name="checkIn" class="java.lang.String"/>
+    <field name="checkOut" class="java.lang.String"/>
+    <field name="status" class="java.lang.String"/>
+
+    <title>
+        <band height="60">
+            <textField>
+                <reportElement x="0" y="5" width="555" height="30"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Roboto" size="18" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{title}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="35" width="555" height="20"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Roboto" size="10" isItalic="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Ngày xuất báo cáo: " + $P{generatedDate}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="25">
+            <staticText>
+                <reportElement x="0" y="0" width="35" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Mã]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="35" y="0" width="130" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[  Khách hàng]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="165" y="0" width="85" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[SĐT]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="250" y="0" width="55" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Phòng]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="305" y="0" width="80" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Nhận phòng]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="385" y="0" width="80" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Trả phòng]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="465" y="0" width="90" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Trạng thái]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="22">
+            <textField>
+                <reportElement x="0" y="0" width="35" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{id}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="35" y="0" width="130" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA["  " + $F{customerName}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="165" y="0" width="85" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{phone} != null ? $F{phone} : "-"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="250" y="0" width="55" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{roomNumber}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="305" y="0" width="80" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{checkIn}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="385" y="0" width="80" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{checkOut}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="465" y="0" width="90" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{status}.equals("BOOKED") ? "Đã đặt" : ($F{status}.equals("CHECKED_IN") ? "Đang ở" : ($F{status}.equals("CHECKED_OUT") ? "Đã trả" : "Đã hủy"))]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+</jasperReport>

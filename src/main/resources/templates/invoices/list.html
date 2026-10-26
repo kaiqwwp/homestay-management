@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý hóa đơn')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-receipt text-info me-2"></i>Quản lý Hóa đơn & Thanh toán</h3>
+                <p class="text-muted small mb-0">Theo dõi doanh thu phòng, dịch vụ đã thanh toán và chứng từ kế toán</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/reports/revenue.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
+                    <i class="bi bi-file-earmark-bar-graph me-1"></i> Báo cáo doanh thu tháng
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card card-custom p-3 mb-4 shadow-sm">
+            <form th:action="@{/invoices}" method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" th:value="${keyword}" class="form-control border-start-0" placeholder="Tìm theo tên khách, số phòng, phương thức...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100 rounded-pill">Tìm kiếm</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="card card-custom p-0 overflow-hidden shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã HĐ</th>
+                            <th>Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Phòng</th>
+                            <th class="text-end">Tiền phòng</th>
+                            <th class="text-end">Tiền dịch vụ</th>
+                            <th class="text-end">Tổng thanh toán</th>
+                            <th class="text-center">Hình thức</th>
+                            <th>Thời gian thanh toán</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="inv : ${invoicePage.content}">
+                            <td class="ps-4 fw-bold text-primary" th:text="'#' + ${inv.id}">#1</td>
+                            <td>
+                                <a th:href="@{/bookings/{id}(id=${inv.booking.id})}" class="text-decoration-none fw-semibold">
+                                    <span th:text="'#' + ${inv.booking.id}">#1</span>
+                                </a>
+                            </td>
+                            <td class="fw-semibold text-dark" th:text="${inv.booking.customer.fullName}">Nguyễn Văn A</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-door-closed me-1"></i><span th:text="${inv.booking.room.roomNumber}">101</span>
+                                </span>
+                            </td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(inv.roomTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</td>
+                            <td class="text-end" th:text="${#numbers.formatDecimal(inv.serviceTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">30.000 đ</td>
+                            <td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(inv.total, 0, 'COMMA', 0, 'POINT')} + ' đ'">630.000 đ</td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary bg-opacity-10 text-dark px-2 py-1" th:text="${inv.paymentMethod}">Tiền mặt</span>
+                            </td>
+                            <td class="text-muted small" th:text="${#temporals.format(inv.paidAt, 'dd/MM/yyyy HH:mm')}">26/10/2026 14:00</td>
+                            <td class="text-end pe-4 text-nowrap">
+                                <a th:href="@{/invoices/{id}(id=${inv.id})}" class="btn btn-sm btn-outline-info rounded-pill me-1" title="Chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a th:href="@{/reports/invoices/{id}.pdf(id=${inv.id})}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill" title="Xuất PDF">
+                                    <i class="bi bi-file-pdf"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${invoicePage.empty}">
+                            <td colspan="10" class="text-center py-4 text-muted">Chưa có hóa đơn nào được tạo.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${invoicePage.totalPages > 1}" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+                <li class="page-item" th:classappend="${invoicePage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/invoices(page=${invoicePage.number - 1}, keyword=${keyword})}">Trước</a>
+                </li>
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, invoicePage.totalPages - 1)}"
+                    th:classappend="${invoicePage.number == i ? 'active' : ''}">
+                    <a class="page-link" th:href="@{/invoices(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${invoicePage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/invoices(page=${invoicePage.number + 1}, keyword=${keyword})}">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

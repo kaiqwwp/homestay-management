@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container" style="max-width: 600px;">
+        <div class="card card-custom p-4 shadow">
+            <div class="d-flex align-items-center mb-3">
+                <a th:href="@{/users}" class="btn btn-sm btn-outline-secondary rounded-circle me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h4 class="fw-bold mb-0" th:text="${title}">Tạo / Sửa tài khoản</h4>
+            </div>
+
+            <form th:action="${userDto.id != null} ? @{/users/{id}(id=${userDto.id})} : @{/users}" 
+                  th:object="${userDto}" method="post">
+                <input type="hidden" th:field="*{id}"/>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tên đăng nhập (Username) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" th:field="*{username}" placeholder="Ví dụ: lethan01, ketoan" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Họ và tên người dùng <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" th:field="*{fullName}" placeholder="Ví dụ: Nguyễn Văn An" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Mật khẩu 
+                        <span th:if="${userDto.id == null}" class="text-danger">*</span>
+                        <span th:if="${userDto.id != null}" class="text-muted small">(Bỏ trống nếu không muốn đổi mật khẩu)</span>
+                    </label>
+                    <input type="password" class="form-control" th:field="*{password}" placeholder="Nhập mật khẩu"/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Vai trò phân quyền <span class="text-danger">*</span></label>
+                    <select class="form-select" th:field="*{role}">
+                        <option value="STAFF">Nhân viên (STAFF) - Quản lý đặt phòng, khách, dịch vụ, hóa đơn</option>
+                        <option value="ADMIN">Quản trị viên (ADMIN) - Toàn quyền quản trị & phân quyền</option>
+                    </select>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a th:href="@{/users}" class="btn btn-outline-secondary rounded-pill px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-check2 me-1"></i> Lưu tài khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

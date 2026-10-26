@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Lịch đặt phòng theo ngày')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-calendar3 text-primary me-2"></i>Lịch đặt phòng theo ngày (Room Timeline)</h3>
+                <p class="text-muted small mb-0">Theo dõi trực quan tình trạng đặt và lưu trú của từng phòng theo thời gian</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center mt-2 mt-md-0">
+                <form th:action="@{/bookings/calendar}" method="get" class="d-flex gap-2 align-items-center">
+                    <label class="small text-muted text-nowrap">Từ ngày:</label>
+                    <input type="date" name="startDate" th:value="${startDate}" class="form-control form-control-sm"/>
+                    <select name="days" class="form-select form-select-sm">
+                        <option value="7" th:selected="${days == 7}">7 ngày</option>
+                        <option value="14" th:selected="${days == 14}">14 ngày</option>
+                        <option value="21" th:selected="${days == 21}">21 ngày</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill text-nowrap">
+                        <i class="bi bi-arrow-repeat"></i> Xem
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="card card-custom p-3 mb-3 shadow-sm">
+            <div class="d-flex flex-wrap gap-4 align-items-center small">
+                <span class="fw-bold text-secondary">Chú thích:</span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded" style="width: 18px; height: 18px; background: #f8fafc; border: 1px solid #cbd5e1;"></span>
+                    <span>Phòng trống</span>
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded bg-primary bg-opacity-25" style="width: 18px; height: 18px; border: 1px solid #4f46e5;"></span>
+                    <span>Đã đặt (BOOKED)</span>
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded bg-danger bg-opacity-25" style="width: 18px; height: 18px; border: 1px solid #dc2626;"></span>
+                    <span>Khách đang ở (CHECKED_IN)</span>
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded bg-warning bg-opacity-25" style="width: 18px; height: 18px; border: 1px solid #d97706;"></span>
+                    <span>Đang bảo trì</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Calendar Matrix Table -->
+        <div class="card card-custom p-0 overflow-hidden shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle text-center mb-0" style="min-width: 900px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 160px; min-width: 160px;" class="text-start ps-3">Phòng / Ngày</th>
+                            <th th:each="d : ${dates}" class="py-2" style="font-size: 0.85rem;">
+                                <div class="fw-bold" th:text="${#temporals.format(d, 'E', new java.util.Locale('vi'))}">Th 2</div>
+                                <div class="text-muted" th:text="${#temporals.format(d, 'dd/MM')}">26/10</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${rooms}">
+                            <td class="text-start ps-3 bg-white">
+                                <div class="fw-bold text-dark" th:text="'Phòng ' + ${r.roomNumber}">101</div>
+                                <small class="text-muted" th:text="${r.roomType.name}">Phòng đơn</small>
+                            </td>
+                            <td th:each="d : ${dates}" class="p-1 position-relative" style="height: 54px;">
+                                <!-- Nếu phòng đang bảo trì -->
+                                <div th:if="${r.status == 'MAINTENANCE'}" class="h-100 w-100 rounded d-flex align-items-center justify-content-center bg-warning bg-opacity-25 text-warning-emphasis small fw-bold">
+                                    <i class="bi bi-tools" title="Bảo trì"></i>
+                                </div>
+
+                                <!-- Nếu phòng không bảo trì -->
+                                <th:block th:if="${r.status != 'MAINTENANCE'}">
+                                    <div th:if="${scheduleMatrix.get(r.id).get(d) == 'FREE'}" class="h-100 w-100 rounded d-flex align-items-center justify-content-center text-muted small opacity-50">
+                                        -
+                                    </div>
+                                    <a th:if="${scheduleMatrix.get(r.id).get(d) == 'BOOKED'}"
+                                       th:href="@{/bookings/{id}(id=${bookingIdMatrix.get(r.id).get(d)})}"
+                                       class="h-100 w-100 rounded d-flex align-items-center justify-content-center bg-primary bg-opacity-25 text-primary text-decoration-none fw-bold small border border-primary"
+                                       title="Xem đơn đặt phòng">
+                                        <i class="bi bi-calendar-check me-1"></i>Đã đặt
+                                    </a>
+                                    <a th:if="${scheduleMatrix.get(r.id).get(d) == 'CHECKED_IN'}"
+                                       th:href="@{/bookings/{id}(id=${bookingIdMatrix.get(r.id).get(d)})}"
+                                       class="h-100 w-100 rounded d-flex align-items-center justify-content-center bg-danger bg-opacity-25 text-danger text-decoration-none fw-bold small border border-danger"
+                                       title="Khách đang ở">
+                                        <i class="bi bi-person-fill me-1"></i>Đang ở
+                                    </a>
+                                </th:block>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(rooms)}">
+                            <td th:colspan="${#lists.size(dates) + 1}" class="text-center py-4 text-muted">Chưa có phòng nào.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

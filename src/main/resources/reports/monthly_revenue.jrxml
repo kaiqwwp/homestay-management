@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="monthly_revenue_report" pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="title" class="java.lang.String"/>
+    <parameter name="generatedDate" class="java.lang.String"/>
+    <parameter name="totalRevenueAll" class="java.lang.String"/>
+
+    <field name="month" class="java.lang.String"/>
+    <field name="totalInvoices" class="java.lang.Long"/>
+    <field name="roomRevenue" class="java.math.BigDecimal"/>
+    <field name="serviceRevenue" class="java.math.BigDecimal"/>
+    <field name="totalRevenue" class="java.math.BigDecimal"/>
+
+    <title>
+        <band height="60">
+            <textField>
+                <reportElement x="0" y="5" width="555" height="30"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Roboto" size="18" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{title}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="35" width="555" height="20"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Roboto" size="10" isItalic="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Ngày xuất báo cáo: " + $P{generatedDate}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="25">
+            <staticText>
+                <reportElement x="0" y="0" width="85" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Tháng]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="85" y="0" width="80" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Số hóa đơn]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="165" y="0" width="130" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Doanh thu phòng  ]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="295" y="0" width="125" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Doanh thu dịch vụ  ]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="420" y="0" width="135" height="25"/>
+                <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <text><![CDATA[Tổng cộng (VNĐ)  ]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="22">
+            <textField>
+                <reportElement x="0" y="0" width="85" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{month}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="85" y="0" width="80" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{totalInvoices}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0 đ">
+                <reportElement x="165" y="0" width="130" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{roomRevenue}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0 đ">
+                <reportElement x="295" y="0" width="125" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textFieldExpression><![CDATA[$F{serviceRevenue}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0 đ">
+                <reportElement x="420" y="0" width="135" height="22"/>
+                <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
+                <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$F{totalRevenue}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <summary>
+        <band height="40">
+            <textField>
+                <reportElement x="200" y="10" width="355" height="25"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font fontName="Roboto" size="13" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["TỔNG DOANH THU TOÀN BỘ: " + $P{totalRevenueAll}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+</jasperReport>

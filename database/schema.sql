@@ -31,6 +31,7 @@ CREATE TABLE rooms (
     room_number VARCHAR(20) NOT NULL UNIQUE,
     room_type_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',  -- AVAILABLE, OCCUPIED, MAINTENANCE
+    image_url VARCHAR(255),
     FOREIGN KEY (room_type_id) REFERENCES room_types(id)
 );
 

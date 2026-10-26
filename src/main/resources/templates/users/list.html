@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý tài khoản')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-shield-lock text-warning me-2"></i>Quản trị Tài khoản người dùng</h3>
+                <p class="text-muted small mb-0">Phân quyền đăng nhập hệ thống (ADMIN / STAFF)</p>
+            </div>
+            <div>
+                <a th:href="@{/users/new}" class="btn btn-primary rounded-pill">
+                    <i class="bi bi-person-plus me-1"></i> Thêm tài khoản mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card card-custom p-3 mb-4 shadow-sm">
+            <form th:action="@{/users}" method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" th:value="${keyword}" class="form-control border-start-0" placeholder="Tìm theo username hoặc họ tên...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100 rounded-pill">Tìm kiếm</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="card card-custom p-0 overflow-hidden shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã</th>
+                            <th>Tên đăng nhập</th>
+                            <th>Họ và tên</th>
+                            <th>Vai trò (Phân quyền)</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="u : ${userPage.content}">
+                            <td class="ps-4 fw-semibold text-muted" th:text="${u.id}">1</td>
+                            <td class="fw-bold text-dark" th:text="${u.username}">admin</td>
+                            <td th:text="${u.fullName}">Quản trị viên</td>
+                            <td>
+                                <span class="badge px-3 py-1 rounded-pill"
+                                      th:classappend="${u.role == 'ADMIN' ? 'bg-danger text-white' : 'bg-primary text-white'}"
+                                      th:text="${u.role == 'ADMIN' ? 'Quản trị viên (ADMIN)' : 'Nhân viên (STAFF)'}">
+                                    ADMIN
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a th:href="@{/users/{id}/edit(id=${u.id})}" class="btn btn-sm btn-outline-primary rounded-pill me-1">
+                                    <i class="bi bi-pencil"></i> Sửa
+                                </a>
+                                <form th:if="${u.username != 'admin'}" th:action="@{/users/{id}/delete(id=${u.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${userPage.empty}">
+                            <td colspan="5" class="text-center py-4 text-muted">Không tìm thấy tài khoản người dùng nào.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${userPage.totalPages > 1}" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+                <li class="page-item" th:classappend="${userPage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/users(page=${userPage.number - 1}, keyword=${keyword})}">Trước</a>
+                </li>
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, userPage.totalPages - 1)}"
+                    th:classappend="${userPage.number == i ? 'active' : ''}">
+                    <a class="page-link" th:href="@{/users(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${userPage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/users(page=${userPage.number + 1}, keyword=${keyword})}">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

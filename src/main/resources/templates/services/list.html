@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Quản lý dịch vụ')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-cup-hot text-danger me-2"></i>Quản lý Dịch vụ Homestay</h3>
+                <p class="text-muted small mb-0">Menu dịch vụ, đơn giá và đơn vị tính phát sinh khi lưu trú</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/reports/services.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
+                    <i class="bi bi-file-pdf me-1"></i> Báo cáo PDF
+                </a>
+                <a th:href="@{/services/new}" class="btn btn-primary rounded-pill">
+                    <i class="bi bi-plus-circle me-1"></i> Thêm dịch vụ mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card card-custom p-3 mb-4 shadow-sm">
+            <form th:action="@{/services}" method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" th:value="${keyword}" class="form-control border-start-0" placeholder="Tìm kiếm tên dịch vụ...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100 rounded-pill">Tìm kiếm</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="card card-custom p-0 overflow-hidden shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã</th>
+                            <th>Tên dịch vụ</th>
+                            <th>Đơn vị tính</th>
+                            <th>Đơn giá hiện hành</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="s : ${servicePage.content}">
+                            <td class="ps-4 fw-semibold text-muted" th:text="${s.id}">1</td>
+                            <td class="fw-bold text-dark" th:text="${s.name}">Ăn sáng buffet</td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-3 py-1" th:text="${s.unit}">suất</span>
+                            </td>
+                            <td class="text-success fw-bold" th:text="${#numbers.formatDecimal(s.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">50.000 đ</td>
+                            <td class="text-end pe-4">
+                                <a th:href="@{/services/{id}/edit(id=${s.id})}" class="btn btn-sm btn-outline-primary rounded-pill me-1">
+                                    <i class="bi bi-pencil"></i> Sửa
+                                </a>
+                                <form th:action="@{/services/{id}/delete(id=${s.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa dịch vụ này?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${servicePage.empty}">
+                            <td colspan="5" class="text-center py-4 text-muted">Không tìm thấy dịch vụ nào.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${servicePage.totalPages > 1}" class="d-flex justify-content-center mt-3">
+            <ul class="pagination">
+                <li class="page-item" th:classappend="${servicePage.first ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/services(page=${servicePage.number - 1}, keyword=${keyword})}">Trước</a>
+                </li>
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, servicePage.totalPages - 1)}"
+                    th:classappend="${servicePage.number == i ? 'active' : ''}">
+                    <a class="page-link" th:href="@{/services(page=${i}, keyword=${keyword})}" th:text="${i + 1}">1</a>
+                </li>
+                <li class="page-item" th:classappend="${servicePage.last ? 'disabled' : ''}">
+                    <a class="page-link" th:href="@{/services(page=${servicePage.number + 1}, keyword=${keyword})}">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

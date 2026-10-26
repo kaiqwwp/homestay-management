@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Trung tâm báo cáo Jasper')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Trung tâm Báo cáo Jasper Reports</h3>
+                <p class="text-muted small mb-0">Hệ thống kết xuất báo cáo thống kê, danh sách và chứng từ chuẩn định dạng PDF</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Thành viên 1: Báo cáo Buồng phòng & Công suất -->
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-primary">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle fs-3 me-3">
+                            <i class="bi bi-door-open-fill"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary small mb-1">Thành viên 1</span>
+                            <h5 class="fw-bold mb-0">Danh sách buồng phòng</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo chi tiết toàn bộ danh sách phòng hiện có, phân loại phòng, giá niêm yết và tình trạng sử dụng.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/rooms.pdf}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-warning">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-warning bg-opacity-10 text-warning-emphasis rounded-circle fs-3 me-3">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis small mb-1">Thành viên 1</span>
+                            <h5 class="fw-bold mb-0">Công suất phòng</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo tỷ lệ lấp đầy (công suất phòng đang có khách / tổng số phòng) theo từng loại phòng của Homestay.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/occupancy.pdf}" target="_blank" class="btn btn-outline-warning btn-sm text-dark rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-info">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-info bg-opacity-10 text-info rounded-circle fs-3 me-3">
+                            <i class="bi bi-tags-fill"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-info bg-opacity-10 text-info small mb-1">Thành viên 1</span>
+                            <h5 class="fw-bold mb-0">Danh sách loại phòng</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo danh mục các loại phòng, đơn giá mỗi đêm và sức chứa tiêu chuẩn.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/room-types.pdf}" target="_blank" class="btn btn-outline-info btn-sm rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thành viên 2: Báo cáo Đặt phòng -->
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-success">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-success bg-opacity-10 text-success rounded-circle fs-3 me-3">
+                            <i class="bi bi-calendar2-check-fill"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-success bg-opacity-10 text-success small mb-1">Thành viên 2</span>
+                            <h5 class="fw-bold mb-0">Danh sách đặt phòng</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo toàn bộ lịch sử các lượt đặt phòng, khách hàng, ngày nhận/trả và trạng thái đơn.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/bookings.pdf}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thành viên 3: Doanh thu & Dịch vụ -->
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-danger">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle fs-3 me-3">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-danger bg-opacity-10 text-danger small mb-1">Thành viên 3</span>
+                            <h5 class="fw-bold mb-0">Doanh thu theo tháng</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo tổng hợp số lượng hóa đơn, doanh thu tiền phòng, doanh thu dịch vụ và tổng tiền theo từng tháng.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/revenue.pdf}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-secondary">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="p-3 bg-secondary bg-opacity-10 text-secondary rounded-circle fs-3 me-3">
+                            <i class="bi bi-cup-hot-fill"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary small mb-1">Thành viên 3</span>
+                            <h5 class="fw-bold mb-0">Danh sách dịch vụ</h5>
+                        </div>
+                    </div>
+                    <p class="text-muted small flex-grow-1">Báo cáo danh mục thực đơn dịch vụ ăn uống, tiện ích giải trí và phương tiện đi kèm.</p>
+                    <div class="d-flex gap-2 pt-2 border-top">
+                        <a th:href="@{/reports/services.pdf}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill w-100">
+                            <i class="bi bi-eye me-1"></i> Xem trực tiếp
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Bảng điều khiển - Dashboard')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-primary me-2"></i>Tổng quan hoạt động</h3>
+                <p class="text-muted small mb-0">Hệ thống quản lý Homestay / Khách sạn thông minh</p>
+            </div>
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <a th:href="@{/bookings/new}" class="btn btn-primary rounded-pill shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Đặt phòng mới
+                </a>
+                <a th:href="@{/bookings/calendar}" class="btn btn-outline-primary rounded-pill shadow-sm">
+                    <i class="bi bi-calendar3 me-1"></i> Lịch phòng theo ngày
+                </a>
+            </div>
+        </div>
+
+        <!-- 4 Metric Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-custom p-3 border-start border-4 border-success h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Phòng đang trống</span>
+                            <h2 class="fw-bold my-1 text-success" th:text="${stats.availableRooms}">0</h2>
+                            <span class="small text-muted">Sẵn sàng nhận khách</span>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success p-3 rounded-circle fs-3">
+                            <i class="bi bi-door-open-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-custom p-3 border-start border-4 border-danger h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Phòng đang có khách</span>
+                            <h2 class="fw-bold my-1 text-danger" th:text="${stats.occupiedRooms}">0</h2>
+                            <span class="small text-muted">Đang lưu trú</span>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle fs-3">
+                            <i class="bi bi-person-check-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-custom p-3 border-start border-4 border-primary h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Doanh thu tháng này</span>
+                            <h2 class="fw-bold my-1 text-primary" th:text="${#numbers.formatDecimal(stats.monthRevenue, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h2>
+                            <span class="small text-muted">Tổng hóa đơn đã thu</span>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-3">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-custom p-3 border-start border-4 border-info h-100">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Đặt phòng hôm nay</span>
+                            <h2 class="fw-bold my-1 text-info" th:text="${stats.bookingsToday}">0</h2>
+                            <span class="small text-muted">Số lượt tạo mới</span>
+                        </div>
+                        <div class="bg-info bg-opacity-10 text-info p-3 rounded-circle fs-3">
+                            <i class="bi bi-bookmark-check-fill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Access Navigation Grid -->
+        <h5 class="fw-bold mb-3"><i class="bi bi-grid-fill text-secondary me-2"></i>Truy cập nhanh chức năng</h5>
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/rooms}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100 transition-hover">
+                    <i class="bi bi-door-closed text-primary fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Quản lý Phòng</h6>
+                    <small class="text-muted" th:text="${stats.totalRooms} + ' phòng'">0 phòng</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/customers}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-people text-success fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Khách hàng</h6>
+                    <small class="text-muted" th:text="${stats.totalCustomers} + ' khách'">0 khách</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/bookings}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-calendar-check text-warning fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Đơn đặt phòng</h6>
+                    <small class="text-muted">Xem danh sách</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/services}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-cup-hot text-danger fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Dịch vụ đi kèm</h6>
+                    <small class="text-muted">Quản lý menu</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/invoices}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-receipt text-info fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Hóa đơn</h6>
+                    <small class="text-muted">Lịch sử thanh toán</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <a th:href="@{/reports}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-file-earmark-pdf text-purple fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Xuất Báo cáo</h6>
+                    <small class="text-muted">Jasper Reports</small>
+                </a>
+            </div>
+        </div>
+
+        <!-- Room Status Summary Card -->
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Hiện trạng buồng phòng</h5>
+            <div class="row align-items-center g-3">
+                <div class="col-md-4 text-center border-end">
+                    <span class="badge badge-status-available fs-6 px-3 py-2 rounded-pill">
+                        <i class="bi bi-check-circle me-1"></i> Trống: <strong th:text="${stats.availableRooms}">0</strong>
+                    </span>
+                </div>
+                <div class="col-md-4 text-center border-end">
+                    <span class="badge badge-status-occupied fs-6 px-3 py-2 rounded-pill">
+                        <i class="bi bi-person-fill me-1"></i> Đang ở: <strong th:text="${stats.occupiedRooms}">0</strong>
+                    </span>
+                </div>
+                <div class="col-md-4 text-center">
+                    <span class="badge badge-status-maintenance fs-6 px-3 py-2 rounded-pill">
+                        <i class="bi bi-tools me-1"></i> Bảo trì: <strong th:text="${stats.maintenanceRooms}">0</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Lỗi xử lý')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="main-wrapper d-flex align-items-center justify-content-center py-5">
+    <div class="text-center p-4 card-custom border-0 shadow p-5" style="max-width: 550px;">
+        <div class="display-1 fw-bold text-danger mb-3"><i class="bi bi-exclamation-octagon"></i> 500</div>
+        <h4 class="fw-bold mb-2">Đã có lỗi xảy ra</h4>
+        <div class="alert alert-danger text-start small mb-4">
+            <i class="bi bi-info-circle me-1"></i>
+            <span th:text="${errorMessage != null ? errorMessage : 'Hệ thống gặp sự cố trong quá trình xử lý yêu cầu.'}">Chi tiết lỗi</span>
+        </div>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+            <a th:href="@{/dashboard}" class="btn btn-primary rounded-pill px-4">
+                <i class="bi bi-house me-1"></i> Về Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

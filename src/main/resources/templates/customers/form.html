@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container" style="max-width: 600px;">
+        <div class="card card-custom p-4 shadow">
+            <div class="d-flex align-items-center mb-3">
+                <a th:href="@{/customers}" class="btn btn-sm btn-outline-secondary rounded-circle me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h4 class="fw-bold mb-0" th:text="${title}">Thêm / Sửa khách hàng</h4>
+            </div>
+
+            <form th:action="${customerDto.id != null} ? @{/customers/{id}(id=${customerDto.id})} : @{/customers}" 
+                  th:object="${customerDto}" method="post">
+                <input type="hidden" th:field="*{id}"/>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Họ và tên khách hàng <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" th:field="*{fullName}" placeholder="Ví dụ: Nguyễn Văn An" required/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" th:field="*{phone}" placeholder="Ví dụ: 0901234567" required/>
+                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Số CCCD / Hộ chiếu</label>
+                        <input type="text" class="form-control" th:field="*{idNumber}" placeholder="Ví dụ: 001200000001"/>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Địa chỉ Email</label>
+                    <input type="email" class="form-control" th:field="*{email}" placeholder="Ví dụ: khachhang@gmail.com"/>
+                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a th:href="@{/customers}" class="btn btn-outline-secondary rounded-pill px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-check2 me-1"></i> Lưu thông tin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chi tiết đơn đặt phòng #' + ${booking.id})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container-fluid px-4">
+        <!-- Breadcrumb & Title -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <a th:href="@{/bookings}" class="btn btn-sm btn-outline-secondary rounded-circle me-3">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h3 class="fw-bold mb-0">
+                        Đơn đặt phòng <span class="text-primary" th:text="'#' + ${booking.id}">#1</span>
+                        <span class="badge ms-2 fs-6 px-3 py-1 rounded-pill"
+                              th:classappend="${booking.status == 'BOOKED' ? 'badge-status-booked' : (booking.status == 'CHECKED_IN' ? 'badge-status-checkedin' : (booking.status == 'CHECKED_OUT' ? 'badge-status-checkedout' : 'badge-status-cancelled'))}"
+                              th:text="${booking.status == 'BOOKED' ? 'Đã đặt (BOOKED)' : (booking.status == 'CHECKED_IN' ? 'Đang ở (CHECKED_IN)' : (booking.status == 'CHECKED_OUT' ? 'Đã trả phòng (CHECKED_OUT)' : 'Đã hủy (CANCELLED)'))}">
+                            Đã đặt
+                        </span>
+                    </h3>
+                    <small class="text-muted" th:text="'Ngày tạo đơn: ' + ${#temporals.format(booking.createdAt, 'dd/MM/yyyy HH:mm')}">26/10/2026</small>
+                </div>
+            </div>
+
+            <!-- Action buttons at header -->
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <!-- Nút Check-in khi BOOKED -->
+                <form th:if="${booking.status == 'BOOKED'}" th:action="@{/bookings/{id}/check-in(id=${booking.id})}" method="post">
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Nhận phòng (Check-in)
+                    </button>
+                </form>
+
+                <!-- Nút Hủy khi BOOKED -->
+                <form th:if="${booking.status == 'BOOKED'}" th:action="@{/bookings/{id}/cancel(id=${booking.id})}" method="post"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn đặt phòng này?');">
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                        <i class="bi bi-x-circle me-1"></i> Hủy đơn
+                    </button>
+                </form>
+
+                <!-- Xem hóa đơn nếu đã checkout -->
+                <a th:if="${invoice != null}" th:href="@{/invoices/{id}(id=${invoice.id})}" class="btn btn-outline-primary rounded-pill px-3">
+                    <i class="bi bi-receipt me-1"></i> Xem hóa đơn #<span th:text="${invoice.id}">1</span>
+                </a>
+                <a th:if="${invoice != null}" th:href="@{/reports/invoices/{id}.pdf(id=${invoice.id})}" target="_blank" class="btn btn-danger rounded-pill px-3">
+                    <i class="bi bi-file-pdf me-1"></i> Xuất hóa đơn PDF
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Column: Customer & Room Info -->
+            <div class="col-12 col-lg-5">
+                <!-- Customer Card -->
+                <div class="card card-custom p-4 mb-4 shadow-sm">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-person-circle text-primary me-2"></i>Thông tin Khách hàng</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><strong>Họ và tên:</strong> <span class="ms-1" th:text="${booking.customer.fullName}">Nguyễn Văn A</span></li>
+                        <li class="mb-2"><strong>Số điện thoại:</strong> <span class="ms-1" th:text="${booking.customer.phone}">0900000001</span></li>
+                        <li class="mb-2"><strong>Email:</strong> <span class="ms-1 text-muted" th:text="${booking.customer.email != null ? booking.customer.email : 'Chưa có'}">email</span></li>
+                        <li class="mb-0"><strong>CCCD/Passport:</strong> <span class="ms-1 badge bg-light text-dark border" th:text="${booking.customer.idNumber != null ? booking.customer.idNumber : 'Chưa có'}">001200000001</span></li>
+                    </ul>
+                </div>
+
+                <!-- Room Card -->
+                <div class="card card-custom p-4 mb-4 shadow-sm">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-door-open-fill text-success me-2"></i>Thông tin Phòng & Thời gian</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <img th:src="${booking.room.imageUrl != null ? booking.room.imageUrl : '/images/room-default.svg'}"
+                             style="width: 80px; height: 60px; border-radius: 8px; object-fit: cover;" alt="Phòng"
+                             onerror="this.src='/images/room-default.svg'" class="me-3"/>
+                        <div>
+                            <h5 class="fw-bold mb-0" th:text="'Phòng ' + ${booking.room.roomNumber}">Phòng 101</h5>
+                            <span class="text-muted small" th:text="${booking.room.roomType.name}">Phòng đơn</span>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><strong>Giá phòng/đêm:</strong> <span class="ms-1 text-success fw-bold" th:text="${#numbers.formatDecimal(booking.room.roomType.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ'">300.000 đ</span></li>
+                        <li class="mb-2"><strong>Ngày nhận (Check-in):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkIn, 'dd/MM/yyyy')}">26/10/2026</span></li>
+                        <li class="mb-2"><strong>Ngày trả (Check-out):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkOut, 'dd/MM/yyyy')}">28/10/2026</span></li>
+                        <li class="mb-0"><strong>Ghi chú:</strong> <span class="ms-1 text-muted" th:text="${booking.note != null and !booking.note.isEmpty() ? booking.note : 'Không có'}">Không có</span></li>
+                    </ul>
+                </div>
+
+                <!-- Cost Summary Card -->
+                <div class="card card-custom p-4 shadow-sm border-start border-4 border-primary">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-cash-coin text-warning me-2"></i>Bảng kê chi phí tạm tính</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tiền phòng:</span>
+                        <strong class="text-dark" th:text="${#numbers.formatDecimal(roomTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tiền dịch vụ phát sinh:</span>
+                        <strong class="text-dark" th:text="${#numbers.formatDecimal(serviceTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
+                    </div>
+                    <hr class="my-2"/>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fs-5 fw-bold text-dark">Tổng cộng:</span>
+                        <span class="fs-4 fw-bold text-primary" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Services & Checkout -->
+            <div class="col-12 col-lg-7">
+                <!-- Services Section -->
+                <div class="card card-custom p-4 mb-4 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cup-straw text-danger me-2"></i>Dịch vụ phát sinh trong thời gian ở</h5>
+                    </div>
+
+                    <!-- Add Service Form (Chỉ cho phép khi đang CHECKED_IN) -->
+                    <div th:if="${booking.status == 'CHECKED_IN'}" class="p-3 bg-light rounded-3 mb-3 border">
+                        <h6 class="fw-semibold mb-2 text-secondary"><i class="bi bi-plus-circle me-1"></i>Thêm dịch vụ sử dụng</h6>
+                        <form th:action="@{/bookings/{bookingId}/services(bookingId=${booking.id})}" th:object="${addServiceDto}" method="post" class="row g-2 align-items-center">
+                            <div class="col-12 col-sm-6">
+                                <select class="form-select form-select-sm" th:field="*{serviceId}" required>
+                                    <option value="">-- Chọn dịch vụ --</option>
+                                    <option th:each="s : ${services}" th:value="${s.id}" 
+                                            th:text="${s.name} + ' (' + ${#numbers.formatDecimal(s.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ/' + ${s.unit} + ')'"></option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <input type="number" min="1" class="form-control form-control-sm" th:field="*{quantity}" placeholder="Số lượng" required/>
+                            </div>
+                            <div class="col-6 col-sm-3">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-pill w-100">
+                                    <i class="bi bi-plus"></i> Thêm
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div th:if="${booking.status != 'CHECKED_IN' and #lists.isEmpty(bookingServices)}" class="text-center py-3 text-muted small">
+                        Chưa có dịch vụ nào phát sinh.
+                    </div>
+
+                    <!-- Services Table -->
+                    <div class="table-responsive" th:if="${!#lists.isEmpty(bookingServices)}">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dịch vụ</th>
+                                    <th class="text-center">Số lượng</th>
+                                    <th class="text-end">Đơn giá lúc dùng</th>
+                                    <th class="text-end">Thành tiền</th>
+                                    <th class="text-center" th:if="${booking.status == 'CHECKED_IN'}">Xóa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="bs : ${bookingServices}">
+                                    <td class="fw-semibold" th:text="${bs.service.name}">Ăn sáng</td>
+                                    <td class="text-center" th:text="${bs.quantity} + ' ' + ${bs.service.unit}">2 suất</td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(bs.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">50.000 đ</td>
+                                    <td class="text-end fw-bold text-dark" th:text="${#numbers.formatDecimal(bs.unitPrice * bs.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">100.000 đ</td>
+                                    <td class="text-center" th:if="${booking.status == 'CHECKED_IN'}">
+                                        <form th:action="@{/bookings/services/{id}/delete(id=${bs.id}, bookingId=${booking.id})}" method="post"
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa dịch vụ này?');">
+                                            <button type="submit" class="btn btn-link text-danger p-0" title="Xóa dịch vụ">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Checkout & Invoicing Box (Khi CHECKED_IN) -->
+                <div th:if="${booking.status == 'CHECKED_IN'}" class="card card-custom p-4 shadow-sm border-success border-2">
+                    <h5 class="fw-bold mb-3 text-success"><i class="bi bi-check2-circle me-2"></i>Trả phòng & Thanh toán hóa đơn</h5>
+                    <p class="text-muted small mb-3">Xác nhận thanh toán toàn bộ chi phí lưu trú và chuyển trạng thái phòng về <strong>AVAILABLE (Sẵn sàng)</strong>.</p>
+                    
+                    <form th:action="@{/invoices/checkout}" method="post">
+                        <input type="hidden" name="bookingId" th:value="${booking.id}"/>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Hình thức thanh toán</label>
+                            <select name="paymentMethod" class="form-select">
+                                <option value="Tiền mặt">Tiền mặt</option>
+                                <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
+                                <option value="Thẻ tín dụng / Ghi nợ">Thẻ tín dụng / Ghi nợ</option>
+                                <option value="Ví điện tử (Momo / ZaloPay)">Ví điện tử (Momo / ZaloPay)</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-success bg-opacity-10 rounded-3 mb-3">
+                            <span class="fw-bold text-success">Tổng số tiền cần thanh toán:</span>
+                            <span class="fs-4 fw-bold text-success" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 py-2 rounded-pill fw-bold"
+                                onclick="return confirm('Xác nhận hoàn tất trả phòng và thanh toán hóa đơn này?');">
+                            <i class="bi bi-credit-card me-1"></i> Xác nhận thanh toán & Trả phòng
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
