@@ -18,7 +18,9 @@ public class DataInitializer {
                 admin.setUsername("admin");
                 admin.setPassword(passwordEncoder.encode("admin123"));
                 admin.setFullName("Quản trị viên Hệ thống");
+                admin.setEmail("admin@homestay.com");
                 admin.setRole("ADMIN");
+                admin.setAuthProvider("LOCAL");
                 userRepository.save(admin);
             }
 
@@ -27,8 +29,21 @@ public class DataInitializer {
                 staff.setUsername("staff");
                 staff.setPassword(passwordEncoder.encode("staff123"));
                 staff.setFullName("Nhân viên Lễ tân");
+                staff.setEmail("staff@homestay.com");
                 staff.setRole("STAFF");
+                staff.setAuthProvider("LOCAL");
                 userRepository.save(staff);
+            }
+
+            if (!userRepository.existsByUsername("customer")) {
+                User customer = new User();
+                customer.setUsername("customer");
+                customer.setPassword(passwordEncoder.encode("admin123"));
+                customer.setFullName("Khách hàng Thân thiết");
+                customer.setEmail("customer@example.com");
+                customer.setRole("CUSTOMER");
+                customer.setAuthProvider("LOCAL");
+                userRepository.save(customer);
             }
         };
     }

@@ -24,13 +24,16 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
     private final RoomRepository roomRepository;
+    private final EmailService emailService;
 
     public BookingService(BookingRepository bookingRepository,
                           CustomerRepository customerRepository,
-                          RoomRepository roomRepository) {
+                          RoomRepository roomRepository,
+                          EmailService emailService) {
         this.bookingRepository = bookingRepository;
         this.customerRepository = customerRepository;
         this.roomRepository = roomRepository;
+        this.emailService = emailService;
     }
 
     public Page<Booking> filterBookings(BookingSearchDto searchDto, Pageable pageable) {
@@ -81,7 +84,9 @@ public class BookingService {
         booking.setStatus("BOOKED");
         booking.setNote(dto.getNote());
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        emailService.sendBookingConfirmation(saved);
+        return saved;
     }
 
     @Transactional

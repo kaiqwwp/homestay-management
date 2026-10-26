@@ -33,4 +33,7 @@ public class Invoice {
 
     @Column(name = "payment_method", length = 30)
     private String paymentMethod;
+
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
 }

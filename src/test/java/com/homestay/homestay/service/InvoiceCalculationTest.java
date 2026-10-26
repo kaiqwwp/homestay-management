@@ -42,6 +42,9 @@ public class InvoiceCalculationTest {
     @Mock
     private RoomRepository roomRepository;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private InvoiceService invoiceService;
 

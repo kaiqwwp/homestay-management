@@ -1,0 +1,67 @@
+# ==============================================================================
+# HƯỚNG DẪN CẤU HÌNH CÁ NHÂN HÓA (DỰ ÁN CUỐI KỲ HOMESTAY MANAGEMENT)
+# ==============================================================================
+# Đổi tên file này thành "application-local.properties" (hoặc copy nội dung sang file đó)
+# File này đã được thêm vào .gitignore để bảo mật thông tin tài khoản và khóa bí mật.
+
+# ------------------------------------------------------------------------------
+# 1. CẤU HÌNH DATABASE MYSQL CỦA BẠN (NẾU CÓ MẬT KHẨU)
+# ------------------------------------------------------------------------------
+# spring.datasource.username=root
+# spring.datasource.password=123456
+
+# ------------------------------------------------------------------------------
+# 2. CẤU HÌNH SEPAY (THANH TOÁN TỰ ĐỘNG QUA VIETQR)
+# ------------------------------------------------------------------------------
+# Điền thông tin tài khoản ngân hàng bạn đã liên kết với SePay (my.sepay.vn):
+sepay.bank.name=MBBank
+sepay.bank.account=0123456789
+sepay.bank.account-name=NGUYEN VAN A
+# API Key của Webhook (Lấy trong phần Cài đặt Webhook của SePay):
+sepay.api.key=YOUR_SEPAY_API_KEY
+# Webhook URL cần dán vào SePay Dashboard:
+# http://<ten-mien-cua-ban>/api/payment/sepay-webhook
+# (Khi chạy local bạn có thể dùng ngrok: ví dụ: ngrok http 8080)
+
+# ------------------------------------------------------------------------------
+# 3. CẤU HÌNH ĐĂNG NHẬP GOOGLE OAUTH2 (GMAIL)
+# ------------------------------------------------------------------------------
+# Cách lấy Client ID và Client Secret:
+# Bước 1: Vào https://console.cloud.google.com/apis/credentials
+# Bước 2: Tạo project mới -> OAuth consent screen (chọn External)
+# Bước 3: Credentials -> Create Credentials -> OAuth client ID
+#   - Application type: Web application
+#   - Authorized redirect URIs: http://localhost:8080/login/oauth2/code/google
+# Bước 4: Copy Client ID và Client Secret điền vào bên dưới:
+# spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+# spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
+# spring.security.oauth2.client.registration.google.scope=openid,profile,email
+
+# ------------------------------------------------------------------------------
+# 4. CẤU HÌNH GỬI EMAIL TỰ ĐỘNG (SPRING MAIL)
+# ------------------------------------------------------------------------------
+# Hỗ trợ: Gmail, Mail domain doanh nghiệp, hoặc Mail trap test.
+# Nếu dùng Gmail:
+# - Bật 2-Step Verification trên tài khoản Google.
+# - Vào https://myaccount.google.com/apppasswords để tạo "Mật khẩu ứng dụng" (16 ký tự).
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your-email@gmail.com
+spring.mail.password=xxxx xxxx xxxx xxxx
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# Nếu dùng Mail Domain riêng (ví dụ: mail.yourdomain.com):
+# spring.mail.host=mail.yourdomain.com
+# spring.mail.port=465
+# spring.mail.username=support@yourdomain.com
+# spring.mail.password=your_password
+# spring.mail.properties.mail.smtp.ssl.enable=true
+
+# ------------------------------------------------------------------------------
+# 5. CẤU HÌNH GOOGLE GEMINI AI (TRỢ LÝ ẢO TƯ VẤN HOMESTAY)
+# ------------------------------------------------------------------------------
+# Lấy API Key miễn phí tại: https://aistudio.google.com/app/apikey
+# Nếu để trống, hệ thống sẽ tự động dùng "Bộ máy tư vấn chuyên gia nội bộ"
+# đọc trực tiếp từ database mà không cần internet/key ngoài.
+gemini.api.key=YOUR_GEMINI_API_KEY

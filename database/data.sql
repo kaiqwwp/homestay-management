@@ -2,9 +2,10 @@ USE homestay_db;
 
 -- Users (Mật khẩu mặc định: admin123 cho admin, staff123 cho staff)
 -- DataInitializer của Spring Boot cũng sẽ tự động đồng bộ/tạo mới nếu chưa có
-INSERT INTO users (username, password, full_name, role) VALUES
-('admin', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Quản trị viên', 'ADMIN'),
-('staff', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Nhân viên Lễ tân', 'STAFF');
+INSERT INTO users (username, password, full_name, email, role, auth_provider) VALUES
+('admin', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Quản trị viên', 'admin@homestay.com', 'ADMIN', 'LOCAL'),
+('staff', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Nhân viên Lễ tân', 'staff@homestay.com', 'STAFF', 'LOCAL'),
+('customer', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Khách hàng Thân thiết', 'customer@example.com', 'CUSTOMER', 'LOCAL');
 
 INSERT INTO room_types (name, price_per_night, capacity, description) VALUES
 ('Phòng đơn', 300000, 1, 'Giường đơn, view vườn, máy lạnh, wifi tốc độ cao'),

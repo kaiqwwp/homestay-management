@@ -30,17 +30,20 @@ public class InvoiceService {
     private final BookingServiceRepository bookingServiceRepository;
     private final ServiceItemService serviceItemService;
     private final RoomRepository roomRepository;
+    private final EmailService emailService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           BookingRepository bookingRepository,
                           BookingServiceRepository bookingServiceRepository,
                           ServiceItemService serviceItemService,
-                          RoomRepository roomRepository) {
+                          RoomRepository roomRepository,
+                          EmailService emailService) {
         this.invoiceRepository = invoiceRepository;
         this.bookingRepository = bookingRepository;
         this.bookingServiceRepository = bookingServiceRepository;
         this.serviceItemService = serviceItemService;
         this.roomRepository = roomRepository;
+        this.emailService = emailService;
     }
 
     public Page<Invoice> filterInvoices(String keyword, Pageable pageable) {
@@ -149,6 +152,8 @@ public class InvoiceService {
         Room room = booking.getRoom();
         room.setStatus("AVAILABLE");
         roomRepository.save(room);
+
+        emailService.sendInvoiceReceipt(savedInvoice);
 
         return savedInvoice;
     }

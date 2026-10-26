@@ -38,6 +38,9 @@ public class BookingAvailabilityTest {
     @Mock
     private RoomRepository roomRepository;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private BookingService bookingService;
 

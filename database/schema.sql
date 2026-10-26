@@ -7,7 +7,9 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role VARCHAR(20) NOT NULL          -- ADMIN, STAFF
+    email VARCHAR(100),
+    role VARCHAR(20) NOT NULL,          -- ADMIN, STAFF, CUSTOMER
+    auth_provider VARCHAR(20) DEFAULT 'LOCAL' -- LOCAL, GOOGLE
 );
 
 CREATE TABLE customers (
@@ -74,5 +76,6 @@ CREATE TABLE invoices (
     total DECIMAL(12,0) NOT NULL,
     paid_at DATETIME,
     payment_method VARCHAR(30),
+    payment_reference VARCHAR(100),
     FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );

@@ -20,6 +20,12 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
+    @Column(length = 100)
+    private String email;
+
     @Column(nullable = false, length = 20)
-    private String role; // ADMIN, STAFF
+    private String role = "CUSTOMER"; // ADMIN, STAFF, CUSTOMER
+
+    @Column(name = "auth_provider", length = 20)
+    private String authProvider = "LOCAL"; // LOCAL, GOOGLE
 }
