@@ -5,10 +5,11 @@
 # File này đã được thêm vào .gitignore để bảo mật thông tin tài khoản và khóa bí mật.
 
 # ------------------------------------------------------------------------------
-# 1. CẤU HÌNH DATABASE MYSQL CỦA BẠN (NẾU CÓ MẬT KHẨU)
+# 1. CẤU HÌNH DATABASE MYSQL ĐÁM MÂY DÙNG CHUNG CHO CẢ NHÓM (AIVEN CLOUD MYSQL)
 # ------------------------------------------------------------------------------
-# spring.datasource.username=root
-# spring.datasource.password=123456
+spring.datasource.url=jdbc:mysql://mysql-2ce4294e-khachsanpro.i.aivencloud.com:16229/defaultdb?sslMode=REQUIRED&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8
+spring.datasource.username=avnadmin
+spring.datasource.password=YOUR_AIVEN_MYSQL_PASSWORD
 
 # ------------------------------------------------------------------------------
 # 2. CẤU HÌNH SEPAY (THANH TOÁN TỰ ĐỘNG QUA VIETQR)
