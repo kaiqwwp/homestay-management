@@ -1,12 +1,217 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Bảng điều khiển - Dashboard')}"></head>
+<head th:replace="~{fragments/layout :: head(${isCustomer ? 'Khám phá & Đặt phòng | Homestay Pro' : 'Bảng điều khiển - Dashboard'})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 <div th:replace="~{fragments/layout :: alerts}"></div>
 
 <div class="main-wrapper py-4">
-    <div class="container-fluid px-4">
+    <!-- ========================================================================= -->
+    <!-- GIAO DIỆN NGHỈ DƯỠNG & ĐẶT PHÒNG CAO CẤP DÀNH RIÊNG CHO KHÁCH HÀNG (CUSTOMER) -->
+    <!-- ========================================================================= -->
+    <div class="container-fluid px-4" th:if="${isCustomer}">
+        <!-- Hero Banner Resort -->
+        <div class="position-relative rounded-4 overflow-hidden shadow-lg mb-4"
+             style="background: linear-gradient(120deg, rgba(15, 23, 42, 0.88) 0%, rgba(49, 46, 129, 0.78) 55%, rgba(67, 56, 202, 0.68) 100%), url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;">
+            <div class="p-4 p-md-5 text-white">
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-7">
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fw-bold mb-3 shadow-sm">
+                            <i class="bi bi-stars me-1"></i>Khu nghỉ dưỡng Homestay Pro &bull; Đặt phòng Thời gian thực
+                        </span>
+                        <h1 class="display-6 fw-bold mb-2">
+                            Tận hưởng kỳ nghỉ trọn vẹn cùng <span class="text-warning" th:text="${currentUser != null ? currentUser.fullName : 'Quý khách'}">Quý khách</span>
+                        </h1>
+                        <p class="text-white-50 mb-4 fs-6">
+                            Không gian nghỉ dưỡng xanh mát, tiện nghi chuẩn 5 sao, xác nhận phòng thời gian thực và thanh toán tự động qua mã QR SePay MB Bank chỉ trong 3 giây.
+                        </p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a th:href="@{/bookings}" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold">
+                                <i class="bi bi-clock-history me-1"></i> Lịch sử phòng đã đặt
+                            </a>
+                            <button type="button" class="btn btn-warning text-dark rounded-pill px-4 py-2 fw-bold shadow"
+                                    onclick="document.getElementById('aiChatToggleBtn').click();">
+                                <i class="bi bi-robot me-1"></i> Nhờ Trợ lý AI tư vấn phòng ngay
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Khung Tìm & Đặt Phòng Nhanh trên Hero -->
+                    <div class="col-lg-5">
+                        <div class="bg-white text-dark rounded-4 p-4 shadow-lg border">
+                            <h5 class="fw-bold text-primary mb-1">
+                                <i class="bi bi-calendar2-heart-fill me-2"></i>Đặt phòng nhanh
+                            </h5>
+                            <p class="text-muted small mb-3">Chọn ngày lưu trú để lọc phòng trống thực tế</p>
+                            <form th:action="@{/bookings/new}" method="get" class="row g-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Ngày nhận phòng</label>
+                                    <input type="date" name="checkIn" id="heroCheckIn" class="form-control"
+                                           th:value="${today}" th:attr="min=${today}" required/>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Ngày trả phòng</label>
+                                    <input type="date" name="checkOut" id="heroCheckOut" class="form-control"
+                                           th:value="${tomorrow}" th:attr="min=${tomorrow}" required/>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 px-3 py-2 small mb-2 border">
+                                        <span><i class="bi bi-door-open-fill text-success me-1"></i>Phòng sẵn sàng hôm nay:</span>
+                                        <span class="badge bg-success rounded-pill px-3"><span id="statAvailableRooms" th:text="${stats.availableRooms}">5</span> phòng trống</span>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
+                                        <i class="bi bi-search me-1"></i> Tìm phòng trống & Đặt ngay
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner Mã giảm giá đền bù hiện có của khách -->
+        <div th:if="${availableVouchers != null and !#lists.isEmpty(availableVouchers)}"
+             class="card card-custom p-3 mb-4 border-start border-4 border-danger bg-warning bg-opacity-10 shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h6 class="fw-bold text-danger mb-1">
+                        <i class="bi bi-gift-fill me-2"></i>Quà tặng Ưu đãi: Bạn đang có Mã giảm giá đền bù chưa sử dụng!
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        <span th:each="v : ${availableVouchers}" class="badge bg-white text-dark border border-danger px-3 py-2 fs-6 shadow-sm">
+                            Mã: <strong class="text-danger font-monospace" th:text="${v.compensationCode}">DENBU10</strong>
+                            (<span class="text-success fw-bold" th:text="'Giảm ' + ${v.compensationDiscount} + '%'">Giảm 10%</span>)
+                            <a th:href="@{/bookings/new(voucherCode=${v.compensationCode})}" class="btn btn-sm btn-danger rounded-pill ms-2 py-0 px-2">Dùng ngay</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bộ sưu tập Phòng nghỉ nổi bật (Real-time Room Showcase) -->
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-3">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">
+                    <i class="bi bi-stars text-warning me-2"></i>Khám phá Không gian Phòng nghỉ
+                </h4>
+                <p class="text-muted small mb-0">Trạng thái phòng được đồng bộ trực tiếp theo thời gian thực (Real-time)</p>
+            </div>
+            <a th:href="@{/rooms}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                Xem bộ lọc chi tiết <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-12 col-md-6 col-xl-4" th:each="room : ${featuredRooms}">
+                <div class="card card-custom h-100 overflow-hidden shadow-sm border-0 d-flex flex-column">
+                    <div class="position-relative" style="height: 220px; background: #0f172a;">
+                        <img th:src="${(room.imageUrl != null and !room.imageUrl.contains('room-default')) ? room.imageUrl : (room.roomTypeName.contains('gia đình') ? 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80' : (room.roomTypeName.contains('đôi') ? 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=80' : 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=900&q=80'))}"
+                             class="w-100 h-100 object-fit-cover" alt="Ảnh phòng nghỉ dưỡng"/>
+                        <div class="position-absolute top-0 start-0 m-3">
+                            <span class="badge bg-dark bg-opacity-75 text-white rounded-pill px-3 py-1 backdrop-blur">
+                                <i class="bi bi-people-fill text-warning me-1"></i>Tối đa <span th:text="${room.capacity}">2</span> khách
+                            </span>
+                        </div>
+                        <span th:id="'room-badge-' + ${room.id}"
+                              class="position-absolute top-0 end-0 m-3 badge rounded-pill px-3 py-2 shadow"
+                              th:classappend="${room.status == 'AVAILABLE' ? 'badge-status-available' : (room.status == 'OCCUPIED' ? 'badge-status-occupied' : 'badge-status-maintenance')}"
+                              th:text="${room.status == 'AVAILABLE' ? '● Đang trống' : (room.status == 'OCCUPIED' ? 'Đang có khách' : 'Đang bảo trì')}">
+                            Đang trống
+                        </span>
+                        <div class="position-absolute bottom-0 start-0 end-0 p-3"
+                             style="background: linear-gradient(to top, rgba(15,23,42,0.85), transparent);">
+                            <div class="d-flex justify-content-between align-items-end text-white">
+                                <div>
+                                    <span class="badge bg-primary bg-opacity-75 mb-1" th:text="${room.roomTypeName}">Phòng đôi</span>
+                                    <h5 class="fw-bold mb-0" th:text="'Phòng ' + ${room.roomNumber}">Phòng 101</h5>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fs-5 fw-bold text-warning" th:text="${#numbers.formatDecimal(room.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ'">500,000 đ</span>
+                                    <small class="d-block text-white-50" style="font-size: 0.75rem;">/ đêm</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 flex-grow-1 d-flex flex-column justify-content-between bg-white">
+                        <div>
+                            <!-- Tiện nghi phòng -->
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <span class="badge bg-light text-secondary border fw-normal"><i class="bi bi-wifi text-primary me-1"></i>Wifi 5G</span>
+                                <span class="badge bg-light text-secondary border fw-normal"><i class="bi bi-snow text-info me-1"></i>Điều hòa</span>
+                                <span class="badge bg-light text-secondary border fw-normal"><i class="bi bi-tv text-dark me-1"></i>Smart TV</span>
+                                <span class="badge bg-light text-secondary border fw-normal"><i class="bi bi-cup-hot text-danger me-1"></i>Trà & Cafe</span>
+                            </div>
+
+                            <!-- Trạng thái thời gian thực (Tuyệt đối ẩn tên khách đang lưu trú đối với CUSTOMER) -->
+                            <div th:id="'room-info-' + ${room.id}" class="p-3 rounded-3 bg-light border small mb-3">
+                                <div th:if="${room.status == 'AVAILABLE'}">
+                                    <div class="text-success fw-bold">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Phòng đang trống &mdash; Sẵn sàng đón khách
+                                    </div>
+                                    <div class="text-muted mt-1">
+                                        Có thể nhận phòng ngay từ: <strong th:text="${#temporals.format(room.nextAvailableDate, 'dd/MM/yyyy')}">Hôm nay</strong>
+                                    </div>
+                                </div>
+                                <div th:if="${room.status == 'OCCUPIED'}">
+                                    <div class="text-danger fw-bold">
+                                        <i class="bi bi-door-closed-fill me-1"></i>Phòng đang có khách lưu trú
+                                    </div>
+                                    <div class="text-primary mt-1" th:if="${room.nextAvailableDate != null}">
+                                        <i class="bi bi-calendar-check me-1"></i>Có thể đặt nhận phòng từ ngày: <strong th:text="${#temporals.format(room.nextAvailableDate, 'dd/MM/yyyy')}"></strong>
+                                    </div>
+                                </div>
+                                <div th:if="${room.status == 'MAINTENANCE'}">
+                                    <div class="text-warning-emphasis fw-bold">
+                                        <i class="bi bi-tools me-1"></i>Phòng đang bảo trì nâng cấp tiện nghi
+                                    </div>
+                                    <div class="text-muted mt-1">Tạm ngưng nhận đặt phòng</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <a th:if="${room.status != 'MAINTENANCE'}"
+                               th:href="@{/bookings/new(checkIn=${room.nextAvailableDate}, roomId=${room.id})}"
+                               class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
+                                <i class="bi bi-calendar-plus me-1"></i> Đặt Phòng <span th:text="${room.roomNumber}"></span> Ngay
+                            </a>
+                            <button th:if="${room.status == 'MAINTENANCE'}" type="button"
+                                    class="btn btn-outline-secondary w-100 rounded-pill py-2" disabled>
+                                <i class="bi bi-slash-circle me-1"></i> Đang bảo trì
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dịch vụ & Tiện ích đi kèm -->
+        <div class="card card-custom p-4 mb-3 border-0 shadow-sm bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-cup-hot-fill text-danger me-2"></i>Dịch vụ & Tiện ích Nghỉ dưỡng đi kèm</h5>
+                    <p class="text-muted small mb-0">Phục vụ tận phòng trong suốt thời gian quý khách lưu trú</p>
+                </div>
+                <a th:href="@{/services}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Xem tất cả</a>
+            </div>
+            <div class="row g-3">
+                <div class="col-6 col-md-4 col-xl-2" th:each="s : ${services}">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <i class="bi bi-stars text-primary fs-4 d-block mb-1"></i>
+                        <div class="fw-bold text-dark small" th:text="${s.name}">Ăn sáng</div>
+                        <div class="text-success fw-semibold small mt-1" th:text="${#numbers.formatDecimal(s.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ/' + ${s.unit}">50,000 đ/suất</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- GIAO DIỆN BẢNG ĐIỀU KHIỂN QUẢN TRỊ DÀNH CHO ADMIN & NHÂN VIÊN (STAFF)     -->
+    <!-- ========================================================================= -->
+    <div class="container-fluid px-4" th:if="${isStaffOrAdmin}">
         <!-- Header -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
@@ -17,7 +222,7 @@
                 <a th:href="@{/bookings/new}" class="btn btn-primary rounded-pill shadow-sm">
                     <i class="bi bi-plus-circle me-1"></i> Đặt phòng mới
                 </a>
-                <a th:if="${isStaffOrAdmin}" th:href="@{/bookings/calendar}" class="btn btn-outline-primary rounded-pill shadow-sm">
+                <a th:href="@{/bookings/calendar}" class="btn btn-outline-primary rounded-pill shadow-sm">
                     <i class="bi bi-calendar3 me-1"></i> Lịch phòng theo ngày
                 </a>
             </div>
@@ -55,7 +260,7 @@
                 </div>
             </div>
 
-            <div class="col-12 col-sm-6 col-xl-3" th:if="${isStaffOrAdmin}">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="card card-custom p-3 border-start border-4 border-primary h-100">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -87,7 +292,7 @@
         </div>
 
         <!-- Quick Access Navigation Grid -->
-        <h5 class="fw-bold mb-3"><i class="bi bi-grid-fill text-secondary me-2"></i>Truy cập nhanh chức năng</h5>
+        <h5 class="fw-bold mb-3"><i class="bi bi-grid-fill text-secondary me-2"></i>Truy cập nhanh chức năng điều hành</h5>
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-4 col-xl-2">
                 <a th:href="@{/rooms}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100 transition-hover">
@@ -97,7 +302,7 @@
                 </a>
             </div>
 
-            <div class="col-6 col-md-4 col-xl-2" th:if="${isStaffOrAdmin}">
+            <div class="col-6 col-md-4 col-xl-2">
                 <a th:href="@{/customers}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-people text-success fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Khách hàng</h6>
@@ -109,7 +314,7 @@
                 <a th:href="@{/bookings}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-calendar-check text-warning fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Đơn đặt phòng</h6>
-                    <small class="text-muted">Xem danh sách</small>
+                    <small class="text-muted">Duyệt & Check-in</small>
                 </a>
             </div>
 
@@ -121,7 +326,7 @@
                 </a>
             </div>
 
-            <div class="col-6 col-md-4 col-xl-2" th:if="${isStaffOrAdmin}">
+            <div class="col-6 col-md-4 col-xl-2">
                 <a th:href="@{/invoices}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-receipt text-info fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Hóa đơn</h6>
@@ -134,14 +339,6 @@
                     <i class="bi bi-file-earmark-pdf text-purple fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Xuất Báo cáo</h6>
                     <small class="text-muted">Jasper Reports</small>
-                </a>
-            </div>
-
-            <div class="col-6 col-md-4 col-xl-2" th:if="${isAdmin}">
-                <a th:href="@{/users}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
-                    <i class="bi bi-shield-lock text-warning fs-1 mb-2"></i>
-                    <h6 class="fw-bold mb-1">Tài khoản</h6>
-                    <small class="text-muted">Phân quyền</small>
                 </a>
             </div>
         </div>
@@ -172,5 +369,22 @@
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script>
+    // Ràng buộc ngày nhận/trả trên thanh Tìm kiếm nhanh của Khách hàng
+    const heroCheckIn = document.getElementById('heroCheckIn');
+    const heroCheckOut = document.getElementById('heroCheckOut');
+    if (heroCheckIn && heroCheckOut) {
+        heroCheckIn.addEventListener('change', () => {
+            if (!heroCheckIn.value) return;
+            const parts = heroCheckIn.value.split('-').map(Number);
+            const nextDay = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+            const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+            heroCheckOut.min = nextDayStr;
+            if (!heroCheckOut.value || heroCheckOut.value <= heroCheckIn.value) {
+                heroCheckOut.value = nextDayStr;
+            }
+        });
+    }
+</script>
 </body>
 </html>

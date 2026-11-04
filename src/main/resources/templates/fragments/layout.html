@@ -67,24 +67,24 @@
             position: fixed;
             bottom: 25px;
             right: 25px;
-            width: 62px;
-            height: 62px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            padding: 12px 22px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
             color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 12px 28px -4px rgba(79, 70, 229, 0.65);
             cursor: pointer;
-            z-index: 1050;
+            z-index: 1060;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: none;
+            border: 2px solid rgba(255, 255, 255, 0.35);
         }
         .ai-fab:hover {
-            transform: scale(1.08) rotate(5deg);
-            box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.6);
+            transform: translateY(-4px) scale(1.04);
+            box-shadow: 0 18px 34px -4px rgba(147, 51, 234, 0.75);
         }
         .ai-chat-box {
             position: fixed;
@@ -178,16 +178,18 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/dashboard}">
-                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        <i class="bi me-1" th:classappend="${isCustomer ? 'bi-compass' : 'bi-speedometer2'}"></i>
+                        <span th:text="${isCustomer ? 'Trang chủ nghỉ dưỡng' : 'Dashboard'}">Dashboard</span>
                     </a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-door-open me-1"></i> Quản lý phòng
+                        <i class="bi bi-door-open me-1"></i>
+                        <span th:text="${isCustomer ? 'Khám phá Phòng' : 'Quản lý phòng'}">Quản lý phòng</span>
                     </a>
                     <ul class="dropdown-menu shadow-sm border-0">
                         <li><a class="dropdown-item" th:href="@{/rooms}"><i class="bi bi-grid me-2"></i>Danh sách phòng</a></li>
-                        <li><a class="dropdown-item" th:href="@{/room-types}"><i class="bi bi-tags me-2"></i>Loại phòng</a></li>
+                        <li><a class="dropdown-item" th:href="@{/room-types}"><i class="bi bi-tags me-2"></i>Hạng phòng & Bảng giá</a></li>
                     </ul>
                 </li>
                 <li class="nav-item" th:if="${isStaffOrAdmin}">
@@ -197,10 +199,11 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-calendar2-check me-1"></i> Đặt phòng
+                        <i class="bi bi-calendar2-check me-1"></i>
+                        <span th:text="${isCustomer ? 'Đặt phòng của tôi' : 'Đặt phòng'}">Đặt phòng</span>
                     </a>
                     <ul class="dropdown-menu shadow-sm border-0">
-                        <li><a class="dropdown-item" th:href="@{/bookings}"><i class="bi bi-card-list me-2"></i>Danh sách đơn</a></li>
+                        <li><a class="dropdown-item" th:href="@{/bookings}"><i class="bi bi-card-list me-2"></i><span th:text="${isCustomer ? 'Lịch sử phòng đã đặt' : 'Danh sách đơn'}">Danh sách đơn</span></a></li>
                         <li><a class="dropdown-item" th:href="@{/bookings/new}"><i class="bi bi-plus-circle me-2"></i>Đặt phòng mới</a></li>
                         <li th:if="${isStaffOrAdmin}"><a class="dropdown-item" th:href="@{/bookings/calendar}"><i class="bi bi-calendar3 me-2"></i>Lịch bảng phòng</a></li>
                     </ul>
@@ -287,48 +290,6 @@
     </div>
 </div>
 
-<!-- Floating AI Chatbot Widget -->
-<button class="ai-fab" id="aiChatToggleBtn" title="Trợ lý ảo AI tư vấn Homestay">
-    <i class="bi bi-robot"></i>
-</button>
-
-<div class="ai-chat-box" id="aiChatBox">
-    <div class="ai-chat-header">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-stars text-warning fs-5"></i>
-            <div>
-                <h6 class="mb-0 fw-bold">Homestay AI Assistant</h6>
-                <small class="text-white-50" style="font-size: 0.75rem;"><span class="text-success">●</span> Tư vấn phòng & Dịch vụ</small>
-            </div>
-        </div>
-        <button class="btn btn-sm btn-link text-white p-0" id="aiChatCloseBtn">
-            <i class="bi bi-x-lg"></i>
-        </button>
-    </div>
-
-    <div class="ai-chat-body" id="aiChatBody">
-        <div class="ai-msg ai-msg-assistant">
-            Xin chào quý khách! Em là <strong>Trợ lý ảo Homestay Pro</strong>. Em có thể tư vấn chọn loại phòng theo số lượng người, báo giá hoặc gợi ý dịch vụ du lịch phù hợp nhất ạ!
-        </div>
-
-        <div class="d-flex flex-wrap gap-1 mt-1 mb-2">
-            <span class="ai-chip" onclick="sendQuickPrompt('Tư vấn phòng cho 2 người')">Phòng 2 người</span>
-            <span class="ai-chip" onclick="sendQuickPrompt('Tư vấn phòng cho gia đình 4 người')">Gia đình 4 người</span>
-            <span class="ai-chip" onclick="sendQuickPrompt('Bảng giá các loại phòng')">Bảng giá phòng</span>
-            <span class="ai-chip" onclick="sendQuickPrompt('Các dịch vụ tiện ích')">Dịch vụ đi kèm</span>
-        </div>
-    </div>
-
-    <div class="p-2 bg-white border-top">
-        <form id="aiChatForm" class="d-flex gap-2">
-            <input type="text" id="aiChatInput" class="form-control form-control-sm rounded-pill" placeholder="Hỏi AI về phòng, giá, số người..." required/>
-            <button type="submit" class="btn btn-primary btn-sm rounded-circle px-2" style="width: 34px; height: 34px;">
-                <i class="bi bi-send-fill"></i>
-            </button>
-        </form>
-    </div>
-</div>
-
 <!-- Footer Fragment -->
 <footer th:fragment="footer" class="mt-auto py-3 bg-white border-top text-center text-muted small">
     <div class="container">
@@ -336,8 +297,51 @@
     </div>
 </footer>
 
-<!-- Scripts Fragment -->
+<!-- Scripts Fragment (Bao gồm cả Widget Chatbot AI để hiển thị trên mọi trang) -->
 <th:block th:fragment="scripts">
+    <!-- Floating AI Chatbot Widget -->
+    <button class="ai-fab" id="aiChatToggleBtn" title="Trợ lý ảo AI tư vấn Homestay">
+        <i class="bi bi-robot fs-4"></i>
+        <span>Trợ lý AI</span>
+    </button>
+
+    <div class="ai-chat-box" id="aiChatBox">
+        <div class="ai-chat-header">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-stars text-warning fs-5"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold">Homestay AI Assistant</h6>
+                    <small class="text-white-50" style="font-size: 0.75rem;"><span class="text-success">●</span> Tư vấn phòng & Dịch vụ 24/7</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-link text-white p-0" id="aiChatCloseBtn">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="ai-chat-body" id="aiChatBody">
+            <div class="ai-msg ai-msg-assistant">
+                Xin chào quý khách! Em là <strong>Trợ lý ảo Homestay Pro</strong>. Em có thể tư vấn chọn loại phòng theo số lượng người, báo giá thực tế hoặc hướng dẫn thanh toán QR SePay ạ!
+            </div>
+
+            <div class="d-flex flex-wrap gap-1 mt-1 mb-2">
+                <span class="ai-chip" onclick="sendQuickPrompt('Tư vấn phòng cho 2 người')">Phòng 2 người</span>
+                <span class="ai-chip" onclick="sendQuickPrompt('Tư vấn phòng cho gia đình 4 người')">Gia đình 4 người</span>
+                <span class="ai-chip" onclick="sendQuickPrompt('Bảng giá các loại phòng')">Bảng giá phòng</span>
+                <span class="ai-chip" onclick="sendQuickPrompt('Các dịch vụ tiện ích')">Dịch vụ đi kèm</span>
+            </div>
+        </div>
+
+        <div class="p-2 bg-white border-top">
+            <form id="aiChatForm" class="d-flex gap-2">
+                <input type="text" id="aiChatInput" class="form-control form-control-sm rounded-pill" placeholder="Hỏi AI về phòng, giá, số người..." required/>
+                <button type="submit" class="btn btn-primary btn-sm rounded-circle px-2" style="width: 34px; height: 34px;">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // AI Chatbot Widget Logic
