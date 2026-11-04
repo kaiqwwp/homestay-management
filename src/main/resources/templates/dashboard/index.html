@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${isCustomer ? 'Khám phá & Đặt phòng | Homestay Pro' : 'Bảng điều khiển - Dashboard'})}"></head>
+<head th:replace="~{fragments/layout :: head(${(isCustomer != null and isCustomer) ? 'Khám phá & Đặt phòng | Homestay Pro' : 'Bảng điều khiển - Dashboard'})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 <div th:replace="~{fragments/layout :: alerts}"></div>

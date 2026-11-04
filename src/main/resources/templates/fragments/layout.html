@@ -178,14 +178,14 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
                 <li class="nav-item">
                     <a class="nav-link" th:href="@{/dashboard}">
-                        <i class="bi me-1" th:classappend="${isCustomer ? 'bi-compass' : 'bi-speedometer2'}"></i>
-                        <span th:text="${isCustomer ? 'Trang chủ nghỉ dưỡng' : 'Dashboard'}">Dashboard</span>
+                        <i class="bi me-1" th:classappend="${(isCustomer != null and isCustomer) ? 'bi-compass' : 'bi-speedometer2'}"></i>
+                        <span th:text="${(isCustomer != null and isCustomer) ? 'Trang chủ nghỉ dưỡng' : 'Dashboard'}">Dashboard</span>
                     </a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-door-open me-1"></i>
-                        <span th:text="${isCustomer ? 'Khám phá Phòng' : 'Quản lý phòng'}">Quản lý phòng</span>
+                        <span th:text="${(isCustomer != null and isCustomer) ? 'Khám phá Phòng' : 'Quản lý phòng'}">Quản lý phòng</span>
                     </a>
                     <ul class="dropdown-menu shadow-sm border-0">
                         <li><a class="dropdown-item" th:href="@{/rooms}"><i class="bi bi-grid me-2"></i>Danh sách phòng</a></li>
@@ -200,10 +200,10 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-calendar2-check me-1"></i>
-                        <span th:text="${isCustomer ? 'Đặt phòng của tôi' : 'Đặt phòng'}">Đặt phòng</span>
+                        <span th:text="${(isCustomer != null and isCustomer) ? 'Đặt phòng của tôi' : 'Đặt phòng'}">Đặt phòng</span>
                     </a>
                     <ul class="dropdown-menu shadow-sm border-0">
-                        <li><a class="dropdown-item" th:href="@{/bookings}"><i class="bi bi-card-list me-2"></i><span th:text="${isCustomer ? 'Lịch sử phòng đã đặt' : 'Danh sách đơn'}">Danh sách đơn</span></a></li>
+                        <li><a class="dropdown-item" th:href="@{/bookings}"><i class="bi bi-card-list me-2"></i><span th:text="${(isCustomer != null and isCustomer) ? 'Lịch sử phòng đã đặt' : 'Danh sách đơn'}">Danh sách đơn</span></a></li>
                         <li><a class="dropdown-item" th:href="@{/bookings/new}"><i class="bi bi-plus-circle me-2"></i>Đặt phòng mới</a></li>
                         <li th:if="${isStaffOrAdmin}"><a class="dropdown-item" th:href="@{/bookings/calendar}"><i class="bi bi-calendar3 me-2"></i>Lịch bảng phòng</a></li>
                     </ul>
