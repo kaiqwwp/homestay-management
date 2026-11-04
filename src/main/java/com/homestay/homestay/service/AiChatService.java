@@ -141,7 +141,11 @@ public class AiChatService {
     }
 
     private String callGeminiApi(String userMessage) {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiApiKey.trim();
+        String key = geminiApiKey.trim();
+        // Hỗ trợ cả Vertex AI Express API Key (bắt đầu bằng "AQ.") và Google AI Studio API Key (bắt đầu bằng "AIza")
+        String url = key.startsWith("AQ.")
+                ? "https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.0-flash:generateContent?key=" + key
+                : "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key;
         RestTemplate restTemplate = new RestTemplate();
 
         List<RoomType> roomTypes = roomTypeRepository.findAll();
@@ -157,18 +161,28 @@ public class AiChatService {
                     .append(rt.getCapacity()).append(" người, hiện còn ").append(avail).append(" phòng trống, mô tả: ")
                     .append(rt.getDescription()).append("\n");
         }
+        context.append("Danh sách từng phòng cụ thể:\n");
+        for (Room r : rooms) {
+            context.append("- Phòng ").append(r.getRoomNumber())
+                    .append(" (").append(r.getRoomType().getName()).append(", ")
+                    .append(r.getRoomType().getPricePerNight()).append(" đ/đêm): Trạng thái = ")
+                    .append(r.getStatus()).append("\n");
+        }
         context.append("Dịch vụ đi kèm:\n");
         for (ServiceItem s : services) {
             context.append("- ").append(s.getName()).append(": ").append(s.getUnitPrice()).append(" VNĐ/").append(s.getUnit()).append("\n");
         }
-        context.append("Thanh toán: Hỗ trợ quét mã QR SePay MB Bank tự động xác nhận hoặc Tiền mặt tại quầy.\n");
+        context.append("Thanh toán: Hỗ trợ quét mã QR SePay MB Bank tự động xác nhận ngay lập tức hoặc Tiền mặt tại quầy.\n");
 
-        String prompt = "Bạn là trợ lý lễ tân ảo thân thiện của Homestay Pro. Hãy dùng thông tin sau để tư vấn cho khách bằng tiếng Việt, ngắn gọn, lịch sự:\n"
+        String prompt = "Bạn là trợ lý lễ tân ảo thông minh, nhiệt tình của khu nghỉ dưỡng Homestay Pro. Hãy dựa vào dữ liệu thực tế sau đây để tư vấn cho khách hàng bằng tiếng Việt ngắn gọn, rõ ràng, thân thiện:\n"
                 + context + "\nCâu hỏi của khách: " + userMessage;
 
         Map<String, Object> body = Map.of(
                 "contents", List.of(
-                        Map.of("parts", List.of(Map.of("text", prompt)))
+                        Map.of(
+                                "role", "user",
+                                "parts", List.of(Map.of("text", prompt))
+                        )
                 )
         );
 
@@ -185,7 +199,12 @@ public class AiChatService {
                 Map content = (Map) first.get("content");
                 List parts = (List) content.get("parts");
                 Map part = (Map) parts.get(0);
-                return (String) part.get("text");
+                String rawText = (String) part.get("text");
+                if (rawText != null) {
+                    return rawText
+                            .replaceAll("\\*\\*(.+?)\\*\\*", "<strong>$1</strong>")
+                            .replace("\n", "<br/>");
+                }
             }
         }
         return null;
