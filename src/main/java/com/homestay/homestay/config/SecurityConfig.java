@@ -51,7 +51,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // Hỗ trợ REST API và AJAX calls
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/", "/login", "/register", "/home", 
+                        "/", "/login", "/register", "/home", "/oauth2/**",
                         "/css/**", "/js/**", "/images/**", "/uploads/**", 
                         "/error/**", "/403", "/404", "/500",
                         "/api/auth/**", "/api/payment/sepay-webhook", "/api/ai/**"

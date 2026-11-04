@@ -229,6 +229,10 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
+        if (emailService != null) {
+            emailService.sendBookingRejectionWithVoucher(saved);
+        }
+
         if (realtimeEventService != null) {
             String msg = String.format("Đơn đặt Phòng %s (#%d) bị từ chối do: %s. Tặng mã giảm giá đền bù %s (-%d%%) cho lần đặt tiếp theo!",
                     saved.getRoom().getRoomNumber(),

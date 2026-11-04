@@ -141,14 +141,27 @@ public class AiChatService {
     }
 
     private String callGeminiApi(String userMessage) {
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + geminiApiKey.trim();
         RestTemplate restTemplate = new RestTemplate();
 
         List<RoomType> roomTypes = roomTypeRepository.findAll();
-        StringBuilder context = new StringBuilder("Dưới đây là thông tin phòng thực tế của Homestay:\n");
+        List<Room> rooms = roomRepository.findAll();
+        List<ServiceItem> services = serviceItemRepository.findAll();
+        StringBuilder context = new StringBuilder("Dưới đây là dữ liệu thực tế theo thời gian thực của Homestay Pro:\n");
         for (RoomType rt : roomTypes) {
-            context.append("- ").append(rt.getName()).append(": giá ").append(rt.getPricePerNight()).append(" VNĐ/đêm, sức chứa ").append(rt.getCapacity()).append(" người, mô tả: ").append(rt.getDescription()).append("\n");
+            long avail = rooms.stream()
+                    .filter(r -> r.getRoomType().getId().equals(rt.getId()) && "AVAILABLE".equalsIgnoreCase(r.getStatus()))
+                    .count();
+            context.append("- Loại phòng ").append(rt.getName())
+                    .append(": giá ").append(rt.getPricePerNight()).append(" VNĐ/đêm, sức chứa tối đa ")
+                    .append(rt.getCapacity()).append(" người, hiện còn ").append(avail).append(" phòng trống, mô tả: ")
+                    .append(rt.getDescription()).append("\n");
         }
+        context.append("Dịch vụ đi kèm:\n");
+        for (ServiceItem s : services) {
+            context.append("- ").append(s.getName()).append(": ").append(s.getUnitPrice()).append(" VNĐ/").append(s.getUnit()).append("\n");
+        }
+        context.append("Thanh toán: Hỗ trợ quét mã QR SePay MB Bank tự động xác nhận hoặc Tiền mặt tại quầy.\n");
 
         String prompt = "Bạn là trợ lý lễ tân ảo thân thiện của Homestay Pro. Hãy dùng thông tin sau để tư vấn cho khách bằng tiếng Việt, ngắn gọn, lịch sự:\n"
                 + context + "\nCâu hỏi của khách: " + userMessage;

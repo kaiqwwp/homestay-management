@@ -23,13 +23,22 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username:noreply@homestay.com}")
+    @Value("${spring.mail.username:}")
     private String fromEmail;
+
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
+    private boolean isMailConfigured() {
+        return mailSender != null
+                && fromEmail != null && !fromEmail.trim().isEmpty()
+                && mailPassword != null && !mailPassword.trim().isEmpty();
+    }
 
     @Async
     public void sendBookingConfirmation(Booking booking) {
         String toEmail = booking.getCustomer().getEmail();
-        if (toEmail == null || toEmail.trim().isEmpty() || mailSender == null) {
+        if (toEmail == null || toEmail.trim().isEmpty() || !isMailConfigured()) {
             log.info("Bỏ qua gửi email đặt phòng (chưa cấu hình email khách hoặc SMTP): {}", toEmail);
             return;
         }
@@ -77,9 +86,54 @@ public class EmailService {
     }
 
     @Async
+    public void sendBookingRejectionWithVoucher(Booking booking) {
+        String toEmail = booking.getCustomer().getEmail();
+        if (toEmail == null || toEmail.trim().isEmpty() || !isMailConfigured()) {
+            log.info("Bỏ qua gửi email từ chối đặt phòng (chưa cấu hình SMTP): {}", toEmail);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail.trim());
+            helper.setTo(toEmail.trim());
+            helper.setSubject("[Homestay Pro] Thông báo về yêu cầu đặt phòng #" + booking.getId() + " & Quà tặng Mã giảm giá đền bù");
+
+            String htmlContent = """
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #fecaca; border-radius: 10px;">
+                    <h2 style="color: #dc2626; text-align: center;">THÔNG BÁO TỪ CHỐI ĐẶT PHÒNG & QUÀ TẶNG ĐỀN BÙ</h2>
+                    <p>Kính gửi quý khách <strong>%s</strong>,</p>
+                    <p>Homestay Pro rất tiếc chưa thể đáp ứng yêu cầu đặt <strong>Phòng %s</strong> (Mã đơn #%d) của quý khách.</p>
+                    <p><strong>Lý do:</strong> %s</p>
+                    <div style="background: #fef9c3; border: 1px dashed #ca8a04; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">
+                        <p style="margin: 0 0 8px 0;">Thay lời xin lỗi, Homestay Pro xin gửi tặng quý khách <strong>Mã giảm giá %d%%</strong> cho lần đặt phòng tiếp theo:</p>
+                        <span style="font-size: 20px; font-weight: bold; color: #dc2626; letter-spacing: 1px;">%s</span>
+                    </div>
+                    <p>Rất mong được đón tiếp và phục vụ quý khách tại Homestay Pro!</p>
+                </div>
+            """.formatted(
+                    booking.getCustomer().getFullName(),
+                    booking.getRoom().getRoomNumber(),
+                    booking.getId(),
+                    booking.getRejectReason() != null ? booking.getRejectReason() : "Phòng đang bảo trì đột xuất",
+                    booking.getCompensationDiscount() != null ? booking.getCompensationDiscount() : 10,
+                    booking.getCompensationCode() != null ? booking.getCompensationCode() : ""
+            );
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            log.info("Đã gửi email từ chối kèm mã giảm giá đền bù tới: {}", toEmail);
+        } catch (Exception e) {
+            log.warn("Không thể gửi email từ chối đặt phòng: {}", e.getMessage());
+        }
+    }
+
+    @Async
     public void sendInvoiceReceipt(Invoice invoice) {
         String toEmail = invoice.getBooking().getCustomer().getEmail();
-        if (toEmail == null || toEmail.trim().isEmpty() || mailSender == null) {
+        if (toEmail == null || toEmail.trim().isEmpty() || !isMailConfigured()) {
             log.info("Bỏ qua gửi email hóa đơn (chưa cấu hình email khách hoặc SMTP): {}", toEmail);
             return;
         }
