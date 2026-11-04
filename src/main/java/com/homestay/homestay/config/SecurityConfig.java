@@ -38,6 +38,11 @@ public class SecurityConfig {
                         "/api/auth/**", "/api/payment/sepay-webhook", "/api/ai/**"
                 ).permitAll()
                 .requestMatchers("/users/**").hasRole("ADMIN")
+                .requestMatchers("/reports/**").hasRole("ADMIN")
+                .requestMatchers(
+                        "/customers/**", "/invoices/**",
+                        "/bookings/calendar", "/bookings/*/status", "/bookings/*/edit"
+                ).hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers(
                         "/rooms/new", "/rooms/*/edit", "/rooms/*/delete",
                         "/room-types/new", "/room-types/*/edit", "/room-types/*/delete",

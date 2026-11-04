@@ -97,7 +97,7 @@
                 </a>
             </div>
 
-            <div class="col-6 col-md-4 col-xl-2">
+            <div class="col-6 col-md-4 col-xl-2" th:if="${isStaffOrAdmin}">
                 <a th:href="@{/customers}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-people text-success fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Khách hàng</h6>
@@ -121,7 +121,7 @@
                 </a>
             </div>
 
-            <div class="col-6 col-md-4 col-xl-2">
+            <div class="col-6 col-md-4 col-xl-2" th:if="${isStaffOrAdmin}">
                 <a th:href="@{/invoices}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-receipt text-info fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Hóa đơn</h6>
@@ -129,11 +129,19 @@
                 </a>
             </div>
 
-            <div class="col-6 col-md-4 col-xl-2">
+            <div class="col-6 col-md-4 col-xl-2" th:if="${isAdmin}">
                 <a th:href="@{/reports}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
                     <i class="bi bi-file-earmark-pdf text-purple fs-1 mb-2"></i>
                     <h6 class="fw-bold mb-1">Xuất Báo cáo</h6>
                     <small class="text-muted">Jasper Reports</small>
+                </a>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2" th:if="${isAdmin}">
+                <a th:href="@{/users}" class="card card-custom text-decoration-none p-3 text-center text-dark h-100">
+                    <i class="bi bi-shield-lock text-warning fs-1 mb-2"></i>
+                    <h6 class="fw-bold mb-1">Tài khoản</h6>
+                    <small class="text-muted">Phân quyền</small>
                 </a>
             </div>
         </div>

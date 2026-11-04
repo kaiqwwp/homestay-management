@@ -190,7 +190,7 @@
                         <li><a class="dropdown-item" th:href="@{/room-types}"><i class="bi bi-tags me-2"></i>Loại phòng</a></li>
                     </ul>
                 </li>
-                <li class="nav-item" th:if="${#authorization != null and #authorization.expression('hasAnyRole(''ADMIN'', ''STAFF'')')}">
+                <li class="nav-item" th:if="${isStaffOrAdmin}">
                     <a class="nav-link" th:href="@{/customers}">
                         <i class="bi bi-people me-1"></i> Khách hàng
                     </a>
@@ -202,7 +202,7 @@
                     <ul class="dropdown-menu shadow-sm border-0">
                         <li><a class="dropdown-item" th:href="@{/bookings}"><i class="bi bi-card-list me-2"></i>Danh sách đơn</a></li>
                         <li><a class="dropdown-item" th:href="@{/bookings/new}"><i class="bi bi-plus-circle me-2"></i>Đặt phòng mới</a></li>
-                        <li><a class="dropdown-item" th:href="@{/bookings/calendar}"><i class="bi bi-calendar3 me-2"></i>Lịch bảng phòng</a></li>
+                        <li th:if="${isStaffOrAdmin}"><a class="dropdown-item" th:href="@{/bookings/calendar}"><i class="bi bi-calendar3 me-2"></i>Lịch bảng phòng</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -210,18 +210,18 @@
                         <i class="bi bi-cup-hot me-1"></i> Dịch vụ
                     </a>
                 </li>
-                <li class="nav-item" th:if="${#authorization != null and #authorization.expression('hasAnyRole(''ADMIN'', ''STAFF'')')}">
+                <li class="nav-item" th:if="${isStaffOrAdmin}">
                     <a class="nav-link" th:href="@{/invoices}">
                         <i class="bi bi-receipt me-1"></i> Hóa đơn
                     </a>
                 </li>
-                <li class="nav-item" th:if="${#authorization != null and #authorization.expression('hasAnyRole(''ADMIN'', ''STAFF'')')}">
+                <li class="nav-item" th:if="${isAdmin}">
                     <a class="nav-link" th:href="@{/reports}">
                         <i class="bi bi-file-earmark-bar-graph me-1"></i> Báo cáo
                     </a>
                 </li>
                 <!-- Menu Tài khoản chỉ dành cho ADMIN -->
-                <li class="nav-item" th:if="${#authorization != null and #authorization.expression('hasRole(''ADMIN'')')}">
+                <li class="nav-item" th:if="${isAdmin}">
                     <a class="nav-link text-warning" th:href="@{/users}">
                         <i class="bi bi-shield-lock me-1"></i> Tài khoản
                     </a>
@@ -231,9 +231,8 @@
             <!-- User Auth Profile & Logout -->
             <div class="d-flex align-items-center gap-3">
                 <div class="text-end text-light small d-none d-md-block">
-                    <div class="fw-bold" th:text="${#authentication != null ? #authentication.name : 'Người dùng'}">admin</div>
-                    <span class="badge bg-light text-dark px-2 py-0" 
-                          th:text="${#authorization != null and #authorization.expression('hasRole(''ADMIN'')') ? 'Quản trị viên (ADMIN)' : (#authorization != null and #authorization.expression('hasRole(''STAFF'')') ? 'Lễ tân (STAFF)' : 'Khách hàng (CUSTOMER)')}">ADMIN</span>
+                    <div class="fw-bold" th:text="${currentUser != null ? currentUser.fullName : (currentUser != null ? currentUser.username : 'Người dùng')}">Người dùng</div>
+                    <span class="badge bg-light text-dark px-2 py-0" th:text="${userRoleLabel}">Vai trò</span>
                 </div>
                 <form th:action="@{/logout}" method="post" class="m-0">
                     <button type="submit" class="btn btn-outline-light btn-sm rounded-pill px-3 py-1">

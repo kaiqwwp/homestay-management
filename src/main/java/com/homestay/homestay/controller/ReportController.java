@@ -107,7 +107,7 @@ public class ReportController {
 
         Map<String, Object> params = new HashMap<>();
         params.put("title", "BÁO CÁO CÔNG SUẤT PHÒNG");
-        params.put("generatedDate", LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+        params.put("generatedDate", java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
 
         byte[] pdf = reportService.exportPdf("room_occupancy.jrxml", params, data);
 

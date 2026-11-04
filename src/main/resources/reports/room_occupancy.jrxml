@@ -18,14 +18,14 @@
             <textField>
                 <reportElement x="0" y="5" width="555" height="30"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
-                    <font fontName="Roboto" size="18" isBold="true"/>
+                    <font fontName="SansSerif" size="18" isBold="true"/>
                 </textElement>
                 <textFieldExpression><![CDATA[$P{title}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="0" y="35" width="555" height="20"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
-                    <font fontName="Roboto" size="10" isItalic="true"/>
+                    <font fontName="SansSerif" size="10" isItalic="true"/>
                 </textElement>
                 <textFieldExpression><![CDATA["Thời điểm thống kê: " + $P{generatedDate}]]></textFieldExpression>
             </textField>
@@ -37,25 +37,25 @@
             <staticText>
                 <reportElement x="0" y="0" width="220" height="25"/>
                 <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
-                <textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" isBold="true"/></textElement>
                 <text><![CDATA[  Loại phòng]]></text>
             </staticText>
             <staticText>
                 <reportElement x="220" y="0" width="110" height="25"/>
                 <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" isBold="true"/></textElement>
                 <text><![CDATA[Tổng số phòng]]></text>
             </staticText>
             <staticText>
                 <reportElement x="330" y="0" width="110" height="25"/>
                 <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" isBold="true"/></textElement>
                 <text><![CDATA[Phòng đang có khách]]></text>
             </staticText>
             <staticText>
                 <reportElement x="440" y="0" width="115" height="25"/>
                 <box><pen lineWidth="0.5" lineColor="#94A3B8"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" isBold="true"/></textElement>
                 <text><![CDATA[Tỷ lệ công suất (%)]]></text>
             </staticText>
         </band>
@@ -66,27 +66,28 @@
             <textField>
                 <reportElement x="0" y="0" width="220" height="22"/>
                 <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
-                <textElement verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textElement verticalAlignment="Middle"><font fontName="SansSerif"/></textElement>
                 <textFieldExpression><![CDATA["  " + $F{roomTypeName}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="220" y="0" width="110" height="22"/>
                 <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif"/></textElement>
                 <textFieldExpression><![CDATA[$F{totalRooms}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="330" y="0" width="110" height="22"/>
                 <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif"/></textElement>
                 <textFieldExpression><![CDATA[$F{occupiedRooms}]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement x="440" y="0" width="115" height="22"/>
                 <box><pen lineWidth="0.5" lineColor="#CBD5E1"/></box>
-                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="Roboto" isBold="true"/></textElement>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$F{occupancyRate}]]></textFieldExpression>
             </textField>
         </band>
     </detail>
 </jasperReport>
+
