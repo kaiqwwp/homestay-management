@@ -52,6 +52,7 @@ public class BookingAvailabilityTest {
         customer = new Customer();
         customer.setId(1L);
         customer.setFullName("Nguyễn Văn A");
+        customer.setEmail("nguyenvana@gmail.com");
 
         RoomType roomType = new RoomType();
         roomType.setName("Phòng đơn");
@@ -95,7 +96,6 @@ public class BookingAvailabilityTest {
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
 
-        // Giả lập đã có booking xung đột
         Booking existing = new Booking();
         existing.setId(99L);
         when(bookingRepository.findConflictingBookings(eq(10L), eq(dto.getCheckIn()), eq(dto.getCheckOut()), isNull()))
@@ -107,7 +107,7 @@ public class BookingAvailabilityTest {
     }
 
     @Test
-    @DisplayName("Tạo đơn đặt phòng thành công khi không bị trùng lịch")
+    @DisplayName("Tạo đơn đặt phòng nội bộ thành công khi không bị trùng lịch")
     void testCreateBookingSuccess() {
         BookingDto dto = new BookingDto();
         dto.setCustomerId(1L);
@@ -125,12 +125,80 @@ public class BookingAvailabilityTest {
 
         assertNotNull(created);
         assertEquals("BOOKED", created.getStatus());
+        assertNotNull(created.getCreatedAt());
         assertEquals(dto.getCheckIn(), created.getCheckIn());
         assertEquals(dto.getCheckOut(), created.getCheckOut());
     }
 
     @Test
-    @DisplayName("Nhận phòng (Check-in): chuyển booking sang CHECKED_IN và room sang OCCUPIED")
+    @DisplayName("Khách hàng đặt phòng trực tuyến bắt đầu ở trạng thái chờ duyệt (PENDING)")
+    void testCreateCustomerBookingStartsPending() {
+        BookingDto dto = new BookingDto();
+        dto.setCustomerFullName("Võ Nhựt Thanh");
+        dto.setCustomerPhone("0909556688");
+        dto.setCustomerEmail("kodvnt61@gmail.com");
+        dto.setCustomerIdNumber("012345678963");
+        dto.setRoomId(10L);
+        dto.setCheckIn(LocalDate.now().plusDays(2));
+        dto.setCheckOut(LocalDate.now().plusDays(4));
+
+        when(customerRepository.findFirstByPhone("0909556688")).thenReturn(Optional.of(customer));
+        when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(bookingRepository.findConflictingBookings(eq(10L), eq(dto.getCheckIn()), eq(dto.getCheckOut()), isNull()))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking created = bookingService.create(dto);
+
+        assertNotNull(created);
+        assertEquals("PENDING", created.getStatus());
+    }
+
+    @Test
+    @DisplayName("Admin duyệt đơn (approve): chuyển từ PENDING sang BOOKED và ghi nhận approvedAt")
+    void testApproveBooking() {
+        Booking booking = new Booking();
+        booking.setId(50L);
+        booking.setStatus("PENDING");
+        booking.setCustomer(customer);
+        booking.setRoom(room);
+        booking.setCheckIn(LocalDate.now().plusDays(1));
+        booking.setCheckOut(LocalDate.now().plusDays(2));
+
+        when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking approved = bookingService.approve(50L);
+
+        assertEquals("BOOKED", approved.getStatus());
+        assertNotNull(approved.getApprovedAt());
+    }
+
+    @Test
+    @DisplayName("Admin từ chối đơn (reject): chuyển sang REJECTED và sinh mã Voucher đền bù DENBU10")
+    void testRejectBookingGeneratesVoucher() {
+        Booking booking = new Booking();
+        booking.setId(51L);
+        booking.setStatus("PENDING");
+        booking.setCustomer(customer);
+        booking.setRoom(room);
+
+        when(bookingRepository.findById(51L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking rejected = bookingService.reject(51L, "Phòng bảo trì đột xuất", 10);
+
+        assertEquals("REJECTED", rejected.getStatus());
+        assertEquals("Phòng bảo trì đột xuất", rejected.getRejectReason());
+        assertEquals(10, rejected.getCompensationDiscount());
+        assertNotNull(rejected.getCompensationCode());
+        assertTrue(rejected.getCompensationCode().startsWith("DENBU10-"));
+        assertNotNull(rejected.getRejectedAt());
+    }
+
+    @Test
+    @DisplayName("Nhận phòng (Check-in): chuyển booking từ BOOKED sang CHECKED_IN và room sang OCCUPIED")
     void testCheckIn() {
         Booking booking = new Booking();
         booking.setId(50L);
@@ -143,7 +211,28 @@ public class BookingAvailabilityTest {
         Booking result = bookingService.checkIn(50L);
 
         assertEquals("CHECKED_IN", result.getStatus());
+        assertNotNull(result.getCheckedInAt());
         assertEquals("OCCUPIED", room.getStatus());
+        verify(roomRepository).save(room);
+    }
+
+    @Test
+    @DisplayName("Giải phóng phòng sau khi đã PAID (completeCheckoutAndReleaseRoom): chuyển sang CHECKED_OUT và mở khóa phòng AVAILABLE")
+    void testReleaseRoomAfterPaid() {
+        room.setStatus("OCCUPIED");
+        Booking booking = new Booking();
+        booking.setId(50L);
+        booking.setStatus("PAID");
+        booking.setRoom(room);
+
+        when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking result = bookingService.completeCheckoutAndReleaseRoom(50L);
+
+        assertEquals("CHECKED_OUT", result.getStatus());
+        assertNotNull(result.getCheckedOutAt());
+        assertEquals("AVAILABLE", room.getStatus());
         verify(roomRepository).save(room);
     }
 

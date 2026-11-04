@@ -68,8 +68,8 @@ public class InvoiceCalculationTest {
         booking = new Booking();
         booking.setId(100L);
         booking.setRoom(room);
-        booking.setCheckIn(LocalDate.of(2026, 10, 1));
-        booking.setCheckOut(LocalDate.of(2026, 10, 4)); // 3 đêm
+        booking.setCheckIn(LocalDate.now());
+        booking.setCheckOut(LocalDate.now().plusDays(3)); // 3 đêm đang trong kỳ lưu trú
         booking.setStatus("CHECKED_IN");
     }
 
@@ -104,8 +104,11 @@ public class InvoiceCalculationTest {
     }
 
     @Test
-    @DisplayName("Hoàn tất trả phòng và tạo hóa đơn: chuyển booking sang CHECKED_OUT, phòng sang AVAILABLE")
-    void testCheckOutAndCreateInvoice() {
+    @DisplayName("Xác nhận thanh toán và xuất hóa đơn: chuyển booking từ CHECKED_IN sang PAID và trừ giảm giá Voucher nếu có")
+    void testCheckOutAndCreateInvoiceWithVoucher() {
+        booking.setDiscountPercent(10); // Giảm 10%
+        booking.setAppliedVoucherCode("DENBU10-TEST");
+
         when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
         when(invoiceRepository.findByBookingId(100L)).thenReturn(Optional.empty());
         when(bookingServiceRepository.findByBookingId(100L)).thenReturn(Collections.emptyList());
@@ -116,20 +119,20 @@ public class InvoiceCalculationTest {
         assertNotNull(invoice);
         assertEquals(new BigDecimal("1500000"), invoice.getRoomTotal());
         assertEquals(BigDecimal.ZERO, invoice.getServiceTotal());
-        assertEquals(new BigDecimal("1500000"), invoice.getTotal());
+        assertEquals(new BigDecimal("150000"), invoice.getDiscountAmount());
+        assertEquals(new BigDecimal("1350000"), invoice.getTotal());
         assertEquals("Tiền mặt", invoice.getPaymentMethod());
 
-        // Kiểm tra chuyển trạng thái
-        assertEquals("CHECKED_OUT", booking.getStatus());
-        assertEquals("AVAILABLE", room.getStatus());
+        // Kiểm tra chuyển trạng thái sang PAID khi khách đang lưu trú (checkOut > today)
+        assertEquals("PAID", booking.getStatus());
+        assertNotNull(booking.getPaidAt());
 
         verify(bookingRepository).save(booking);
-        verify(roomRepository).save(room);
         verify(invoiceRepository).save(any(Invoice.class));
     }
 
     @Test
-    @DisplayName("Ném BusinessException nếu trả phòng khi đơn không ở trạng thái CHECKED_IN")
+    @DisplayName("Ném BusinessException nếu thanh toán khi đơn chưa được xác nhận Check-in (CHECKED_IN)")
     void testCheckOutInvalidStatus() {
         booking.setStatus("BOOKED");
         when(bookingRepository.findById(100L)).thenReturn(Optional.of(booking));
