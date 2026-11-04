@@ -6,18 +6,22 @@ import com.homestay.homestay.security.CustomOAuth2UserService;
 import com.homestay.homestay.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.oauth2.client.CommonOAuth2Provider;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -30,8 +34,11 @@ import java.util.UUID;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired(required = false)
-    private ClientRegistrationRepository clientRegistrationRepository;
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    private String googleClientId;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-secret:}")
+    private String googleClientSecret;
 
     @Autowired(required = false)
     private CustomOAuth2UserService customOAuth2UserService;
@@ -46,6 +53,13 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private boolean isGoogleOAuthConfigured() {
+        return googleClientId != null && !googleClientId.isBlank()
+                && !googleClientId.equalsIgnoreCase("YOUR_GOOGLE_CLIENT_ID")
+                && googleClientSecret != null && !googleClientSecret.isBlank()
+                && !googleClientSecret.equalsIgnoreCase("YOUR_GOOGLE_CLIENT_SECRET");
     }
 
     @Bean
@@ -146,9 +160,17 @@ public class SecurityConfig {
                 .accessDeniedPage("/error/403")
             );
 
-        // Kích hoạt OAuth2 Login nếu ClientRegistrationRepository khả dụng (đã cấu hình google client-id)
-        if (clientRegistrationRepository != null) {
+        // Kích hoạt OAuth2 Login thật qua accounts.google.com khi đã cấu hình Client ID & Client Secret
+        if (isGoogleOAuthConfigured()) {
+            ClientRegistration googleRegistration = CommonOAuth2Provider.GOOGLE.getBuilder("google")
+                    .clientId(googleClientId.trim())
+                    .clientSecret(googleClientSecret.trim())
+                    .scope("openid", "profile", "email")
+                    .build();
+            ClientRegistrationRepository repo = new InMemoryClientRegistrationRepository(googleRegistration);
+
             http.oauth2Login(oauth2 -> {
+                oauth2.clientRegistrationRepository(repo);
                 oauth2.loginPage("/login");
                 oauth2.successHandler(loginSuccessHandler());
                 if (customOAuth2UserService != null) {
