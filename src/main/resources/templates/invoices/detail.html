@@ -60,6 +60,9 @@
                     <div class="text-muted small">
                         Hình thức: <span class="badge bg-light text-dark border" th:text="${invoice.paymentMethod}">Tiền mặt</span>
                     </div>
+                    <div class="text-muted small" th:if="${invoice.paymentReference != null}">
+                        Mã GD: <code th:text="${invoice.paymentReference}">SEPAY</code>
+                    </div>
                 </div>
             </div>
 
@@ -110,6 +113,13 @@
                     <div class="d-flex justify-content-between py-1 text-muted">
                         <span>Tiền dịch vụ:</span>
                         <span class="fw-semibold text-dark" th:text="${#numbers.formatDecimal(invoice.serviceTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 text-danger" th:if="${invoice.discountAmount != null and invoice.discountAmount > 0}">
+                        <span>
+                            Giảm giá đền bù
+                            <small th:if="${invoice.booking.appliedVoucherCode != null}" th:text="'(' + ${invoice.booking.appliedVoucherCode} + ' - ' + ${invoice.booking.discountPercent} + '%)'"></small>:
+                        </span>
+                        <span class="fw-bold" th:text="'- ' + ${#numbers.formatDecimal(invoice.discountAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">- 50.000 đ</span>
                     </div>
                     <hr class="my-2"/>
                     <div class="d-flex justify-content-between py-2">

@@ -176,6 +176,19 @@ public class ReportController {
             ));
         }
 
+        // Dòng giảm giá mã đền bù (nếu có)
+        if (invoice.getDiscountAmount() != null && invoice.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            String voucherLabel = booking.getAppliedVoucherCode() != null
+                    ? "Giảm giá Voucher đền bù (" + booking.getAppliedVoucherCode() + " - " + booking.getDiscountPercent() + "%)"
+                    : "Giảm giá khuyến mãi / đền bù";
+            data.add(new InvoiceReportItem(
+                    voucherLabel,
+                    1,
+                    invoice.getDiscountAmount().negate(),
+                    invoice.getDiscountAmount().negate()
+            ));
+        }
+
         Map<String, Object> params = new HashMap<>();
         params.put("title", "HÓA ĐƠN THANH TOÁN DỊCH VỤ");
         params.put("invoiceId", String.valueOf(invoice.getId()));
