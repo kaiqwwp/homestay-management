@@ -43,7 +43,7 @@ public class DashboardController {
         model.addAttribute("stats", stats);
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("tomorrow", LocalDate.now().plusDays(1));
-        model.addAttribute("featuredRooms", roomService.getRealTimeRoomCards(null, null, null, PageRequest.of(0, 12)).getContent());
+        model.addAttribute("featuredRooms", roomService.filterRoomCards(null, null, null, PageRequest.of(0, 12)).getContent());
         model.addAttribute("services", serviceItemService.findAll());
 
         User currentUser = securityUserAdvice.getCurrentUser();
