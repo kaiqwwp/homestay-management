@@ -3,9 +3,9 @@ USE homestay_db;
 -- Users (Mật khẩu mặc định: admin123 cho admin, staff123 cho staff)
 -- DataInitializer của Spring Boot cũng sẽ tự động đồng bộ/tạo mới nếu chưa có
 INSERT INTO users (username, password, full_name, email, role, auth_provider) VALUES
-('admin', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Quản trị viên', 'admin@homestay.com', 'ADMIN', 'LOCAL'),
-('staff', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Nhân viên Lễ tân', 'staff@homestay.com', 'STAFF', 'LOCAL'),
-('customer', '$2a$10$GRLdNijSQMUvl/au9ofL.eDwmoohzzS7.rmNSJZ.0FxGQrvkWgyzG', 'Khách hàng Thân thiết', 'customer@example.com', 'CUSTOMER', 'LOCAL');
+('admin', '$2a$10$LrKtRpIVlAQpCAuoXwlq9u1PeFUdLGFo/hCCRJQNIo3O65pSS64su', 'Quản trị viên', 'admin@homestay.com', 'ADMIN', 'LOCAL'),
+('staff', '$2a$10$n/lF5XViaiPlAAxUvWLtqu7iOS7x7xuzoO3lYoJiMfK.fdH0XVn5W', 'Nhân viên Lễ tân', 'staff@homestay.com', 'STAFF', 'LOCAL'),
+('customer', '$2a$10$LrKtRpIVlAQpCAuoXwlq9u1PeFUdLGFo/hCCRJQNIo3O65pSS64su', 'Khách hàng Thân thiết', 'customer@example.com', 'CUSTOMER', 'LOCAL');
 
 INSERT INTO room_types (name, price_per_night, capacity, description) VALUES
 ('Phòng đơn', 300000, 1, 'Giường đơn, view vườn, máy lạnh, wifi tốc độ cao'),
@@ -44,4 +44,3 @@ INSERT INTO booking_services (booking_id, service_id, quantity, unit_price) VALU
 
 INSERT INTO invoices (booking_id, room_total, service_total, total, paid_at, payment_method) VALUES
 (3, 600000, 30000, 630000, NOW(), 'Tiền mặt');
-
