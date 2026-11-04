@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Thông tin cá nhân')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<div class="main-wrapper py-4">
+    <div class="container" style="max-width: 720px;">
+        <!-- Cảnh báo yêu cầu bổ sung SĐT & CCCD khi đăng nhập bằng Gmail hoặc thiếu thông tin -->
+        <div th:if="${requireUpdate}" class="alert alert-warning shadow-sm border-warning border-start border-4 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill fs-3 text-warning me-3"></i>
+                <div>
+                    <h6 class="fw-bold mb-1 text-dark">Vui lòng hoàn tất thông tin cá nhân trước khi đặt phòng!</h6>
+                    <p class="small mb-0 text-dark">
+                        Hệ thống yêu cầu đầy đủ <strong>Họ và tên</strong>, <strong>Số điện thoại</strong> và <strong>Số CCCD / Passport</strong> chính chủ để sử dụng khi tạo đơn đặt phòng.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-custom p-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 56px; height: 56px;">
+                        <i class="bi bi-person-badge-fill fs-2"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1" th:text="${user.fullName}">Họ và tên</h4>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary" th:text="${userRoleLabel}">Khách hàng</span>
+                            <span th:if="${user.authProvider == 'GOOGLE'}" class="badge bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-google me-1"></i>Tài khoản Gmail
+                            </span>
+                            <span th:if="${user.hasCompleteProfile()}" class="badge bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-patch-check-fill me-1"></i>Đủ điều kiện đặt phòng
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <a th:if="${user.hasCompleteProfile()}" th:href="@{/bookings/new}" class="btn btn-primary rounded-pill px-3">
+                    <i class="bi bi-calendar-plus me-1"></i> Đặt phòng ngay
+                </a>
+            </div>
+
+            <form th:action="@{/profile}" method="post">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Tên đăng nhập</label>
+                        <input type="text" class="form-control bg-light" th:value="${user.username}" readonly/>
+                        <div class="form-text small">Tên đăng nhập cố định của tài khoản.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" name="fullName" class="form-control" th:value="${user.fullName}"
+                               placeholder="Nhập họ và tên của bạn" required/>
+                        <div class="form-text small" th:if="${user.authProvider == 'GOOGLE'}">
+                            Mặc định lấy theo tên Gmail, bạn có thể đổi lại theo tên trên CCCD.
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Số điện thoại liên hệ <span class="text-danger">*</span></label>
+                        <input type="text" name="phone" class="form-control" th:value="${user.phone}"
+                               placeholder="Ví dụ: 0901234567" required/>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Số CCCD / Passport <span class="text-danger">*</span></label>
+                        <input type="text" name="idNumber" class="form-control" th:value="${user.idNumber}"
+                               placeholder="Nhập số CCCD hoặc Hộ chiếu" required/>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email nhận thông báo <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" th:value="${user.email}"
+                               th:readonly="${user.authProvider == 'GOOGLE'}"
+                               placeholder="example@gmail.com" required/>
+                    </div>
+
+                    <div class="col-md-6" th:if="${user.authProvider != 'GOOGLE'}">
+                        <label class="form-label fw-semibold">Đổi mật khẩu mới (Tùy chọn)</label>
+                        <input type="password" name="newPassword" class="form-control"
+                               placeholder="Để trống nếu giữ nguyên mật khẩu cũ"/>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-3">
+                    <a th:href="@{/dashboard}" class="btn btn-outline-secondary rounded-pill px-4">Quay lại</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                        <i class="bi bi-save me-1"></i> Lưu thông tin cá nhân
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
+

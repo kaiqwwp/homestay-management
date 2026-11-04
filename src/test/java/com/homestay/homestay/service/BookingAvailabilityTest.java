@@ -64,10 +64,10 @@ public class BookingAvailabilityTest {
     }
 
     @Test
-    @DisplayName("Ném BusinessException nếu ngày trả phòng trước hoặc bằng ngày nhận phòng")
+    @DisplayName("Ném BusinessException nếu ngày nhận/trả trong quá khứ hoặc ngày trả <= ngày nhận")
     void testValidateBookingDatesInvalid() {
-        LocalDate checkIn = LocalDate.of(2026, 10, 5);
-        LocalDate checkOut = LocalDate.of(2026, 10, 4);
+        LocalDate checkIn = LocalDate.now().plusDays(2);
+        LocalDate checkOut = LocalDate.now().plusDays(1);
 
         assertThrows(BusinessException.class, () -> {
             bookingService.validateBookingDates(checkIn, checkOut);
@@ -75,6 +75,11 @@ public class BookingAvailabilityTest {
 
         assertThrows(BusinessException.class, () -> {
             bookingService.validateBookingDates(checkIn, checkIn);
+        });
+
+        // Kiểm tra không cho phép chọn ngày nhận phòng trong quá khứ
+        assertThrows(BusinessException.class, () -> {
+            bookingService.validateBookingDates(LocalDate.now().minusDays(1), LocalDate.now().plusDays(1));
         });
     }
 
@@ -84,8 +89,8 @@ public class BookingAvailabilityTest {
         BookingDto dto = new BookingDto();
         dto.setCustomerId(1L);
         dto.setRoomId(10L);
-        dto.setCheckIn(LocalDate.of(2026, 10, 1));
-        dto.setCheckOut(LocalDate.of(2026, 10, 5));
+        dto.setCheckIn(LocalDate.now().plusDays(1));
+        dto.setCheckOut(LocalDate.now().plusDays(5));
 
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
@@ -107,8 +112,8 @@ public class BookingAvailabilityTest {
         BookingDto dto = new BookingDto();
         dto.setCustomerId(1L);
         dto.setRoomId(10L);
-        dto.setCheckIn(LocalDate.of(2026, 10, 10));
-        dto.setCheckOut(LocalDate.of(2026, 10, 12));
+        dto.setCheckIn(LocalDate.now().plusDays(3));
+        dto.setCheckOut(LocalDate.now().plusDays(5));
 
         when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
         when(roomRepository.findById(10L)).thenReturn(Optional.of(room));

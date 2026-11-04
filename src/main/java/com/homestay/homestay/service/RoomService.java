@@ -1,8 +1,11 @@
 package com.homestay.homestay.service;
 
+import com.homestay.homestay.dto.RoomCardDto;
 import com.homestay.homestay.dto.RoomDto;
+import com.homestay.homestay.entity.Booking;
 import com.homestay.homestay.entity.Room;
 import com.homestay.homestay.entity.RoomType;
+import org.springframework.data.domain.PageImpl;
 import com.homestay.homestay.exception.BusinessException;
 import com.homestay.homestay.exception.ResourceNotFoundException;
 import com.homestay.homestay.repository.BookingRepository;
@@ -38,6 +41,38 @@ public class RoomService {
         this.roomRepository = roomRepository;
         this.roomTypeService = roomTypeService;
         this.bookingRepository = bookingRepository;
+    }
+
+    public Page<RoomCardDto> filterRoomCards(String status, Long roomTypeId, String keyword, Pageable pageable) {
+        Page<Room> page = roomRepository.filterRooms(status, roomTypeId, keyword, pageable);
+        LocalDate today = LocalDate.now();
+
+        List<RoomCardDto> cards = page.getContent().stream().map(room -> {
+            List<Booking> activeList = bookingRepository.findActiveCheckedInByRoomId(room.getId());
+            Booking activeBooking = activeList.isEmpty() ? null : activeList.get(0);
+
+            LocalDate nextAvailable = calculateNextAvailableDate(room.getId(), activeBooking, today);
+            return RoomCardDto.fromRoom(room, activeBooking, nextAvailable);
+        }).toList();
+
+        return new PageImpl<>(cards, pageable, page.getTotalElements());
+    }
+
+    private LocalDate calculateNextAvailableDate(Long roomId, Booking currentActive, LocalDate today) {
+        if (currentActive != null && currentActive.getCheckOut() != null) {
+            return currentActive.getCheckOut();
+        }
+        List<Booking> upcoming = bookingRepository.findUpcomingBookingsByRoomId(roomId, today);
+        if (upcoming.isEmpty()) {
+            return today;
+        }
+        // Kiểm tra xem hôm nay có bị trùng đơn nào không
+        for (Booking b : upcoming) {
+            if (!today.isBefore(b.getCheckIn()) && today.isBefore(b.getCheckOut())) {
+                return b.getCheckOut();
+            }
+        }
+        return today;
     }
 
     public Page<Room> filterRooms(String status, Long roomTypeId, String keyword, Pageable pageable) {

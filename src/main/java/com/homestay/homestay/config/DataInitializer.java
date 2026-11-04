@@ -2,6 +2,7 @@ package com.homestay.homestay.config;
 
 import com.homestay.homestay.entity.User;
 import com.homestay.homestay.repository.UserRepository;
+import com.homestay.homestay.service.UserService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class DataInitializer {
 
     @Bean
-    public CommandLineRunner initDefaultUsers(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner initDefaultUsers(UserRepository userRepository,
+                                              UserService userService,
+                                              PasswordEncoder passwordEncoder) {
         return args -> {
             if (!userRepository.existsByUsername("admin")) {
                 User admin = new User();
@@ -44,6 +47,13 @@ public class DataInitializer {
                 customer.setRole("CUSTOMER");
                 customer.setAuthProvider("LOCAL");
                 userRepository.save(customer);
+            }
+
+            // Đồng bộ tất cả các tài khoản CUSTOMER đã đăng ký thật (có SĐT và CCCD) vào bảng customers
+            for (User u : userRepository.findAll()) {
+                if ("CUSTOMER".equalsIgnoreCase(u.getRole()) && !"customer".equalsIgnoreCase(u.getUsername())) {
+                    userService.syncOrCreateCustomerForUser(u, u.getEmail(), u.getPhone());
+                }
             }
         };
     }

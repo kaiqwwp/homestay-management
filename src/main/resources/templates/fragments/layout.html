@@ -228,12 +228,41 @@
                 </li>
             </ul>
 
-            <!-- User Auth Profile & Logout -->
+            <!-- User Auth Profile, Live Notification Bell & Logout -->
             <div class="d-flex align-items-center gap-3">
+                <!-- Chuông thông báo Real-time cho tất cả người dùng đã đăng nhập -->
+                <div class="dropdown" th:if="${currentUser != null}">
+                    <button class="btn btn-outline-light btn-sm rounded-circle position-relative" type="button"
+                            id="realtimeBellBtn" data-bs-toggle="dropdown" aria-expanded="false"
+                            th:attr="data-staff-or-admin=${isStaffOrAdmin},data-user-email=${currentUser != null ? currentUser.email : ''}"
+                            style="width: 36px; height: 36px;" title="Thông báo thời gian thực">
+                        <i class="bi bi-bell-fill"></i>
+                        <span id="realtimeBadgeCount"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                              style="font-size: 0.65rem;">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0" style="width: 340px; max-height: 400px; overflow-y: auto;">
+                        <div class="p-2 px-3 bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
+                            <span class="fw-bold small"><i class="bi bi-broadcast me-1"></i>Đồng bộ thời gian thực (Live)</span>
+                            <span class="badge bg-success" style="font-size: 0.65rem;">● Online</span>
+                        </div>
+                        <div id="realtimeNotificationList" class="list-group list-group-flush small">
+                            <div id="realtimeEmptyItem" class="p-3 text-center text-muted small">
+                                Chưa có thông báo mới trong phiên này
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="text-end text-light small d-none d-md-block">
-                    <div class="fw-bold" th:text="${currentUser != null ? currentUser.fullName : (currentUser != null ? currentUser.username : 'Người dùng')}">Người dùng</div>
+                    <a th:href="@{/profile}" class="text-white text-decoration-none d-block fw-bold" title="Bấm để cập nhật thông tin cá nhân">
+                        <i class="bi bi-person-circle me-1"></i><span th:text="${currentUser != null ? currentUser.fullName : (currentUser != null ? currentUser.username : 'Người dùng')}">Người dùng</span>
+                    </a>
                     <span class="badge bg-light text-dark px-2 py-0" th:text="${userRoleLabel}">Vai trò</span>
                 </div>
+                <a th:href="@{/profile}" class="btn btn-outline-info btn-sm rounded-pill px-3 py-1 text-white border-light" title="Cập nhật CCCD, SĐT, Họ tên">
+                    <i class="bi bi-person-vcard me-1"></i> Hồ sơ
+                </a>
                 <form th:action="@{/logout}" method="post" class="m-0">
                     <button type="submit" class="btn btn-outline-light btn-sm rounded-pill px-3 py-1">
                         <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
@@ -384,6 +413,474 @@
                 appendAssistantMessage('Dạ hệ thống trợ lý ảo tạm thời bận, quý khách vui lòng thử lại sau giây lát ạ.');
             });
         }
+
+        // ==================== REAL-TIME SSE SYNCHRONIZATION ENGINE ====================
+        (function initRealtimeSync() {
+            if (!window.EventSource) return;
+
+            // Tạo vùng chứa Toast góc trên bên phải nếu chưa có
+            let toastContainer = document.getElementById('realtimeToastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'realtimeToastContainer';
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '1090';
+                document.body.appendChild(toastContainer);
+            }
+
+            let unreadCount = 0;
+            const badgeEl = document.getElementById('realtimeBadgeCount');
+            const listEl = document.getElementById('realtimeNotificationList');
+            const bellBtn = document.getElementById('realtimeBellBtn');
+
+            if (bellBtn && badgeEl) {
+                bellBtn.addEventListener('click', () => {
+                    unreadCount = 0;
+                    badgeEl.classList.add('d-none');
+                    badgeEl.textContent = '0';
+                });
+            }
+
+            const evtSource = new EventSource('/api/realtime/stream');
+
+            evtSource.addEventListener('booking-event', function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleRealtimeBookingEvent(data);
+                } catch (err) {
+                    console.error('Lỗi xử lý sự kiện realtime:', err);
+                }
+            });
+
+            evtSource.addEventListener('customer-event', function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleRealtimeCustomerEvent(data);
+                } catch (err) {
+                    console.error('Lỗi xử lý sự kiện khách hàng realtime:', err);
+                }
+            });
+
+            function handleRealtimeCustomerEvent(data) {
+                const c = data.customer || {};
+                const stats = data.stats || null;
+
+                if (bellBtn) {
+                    unreadCount++;
+                    if (badgeEl) {
+                        badgeEl.textContent = unreadCount;
+                        badgeEl.classList.remove('d-none');
+                    }
+                    if (listEl) {
+                        const emptyItem = document.getElementById('realtimeEmptyItem');
+                        if (emptyItem) emptyItem.remove();
+
+                        const item = document.createElement('a');
+                        item.href = '/customers';
+                        item.className = 'list-group-item list-group-item-action py-2 px-3';
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-success">Khách hàng #${c.id || ''}</span>
+                                <small class="text-muted" style="font-size:0.7rem;">${data.timestamp || 'Vừa xong'}</small>
+                            </div>
+                            <div class="fw-semibold text-dark">${data.message || ''}</div>
+                        `;
+                        listEl.prepend(item);
+                    }
+
+                    const toastEl = document.createElement('div');
+                    toastEl.className = 'toast show shadow-lg border-0 mb-2';
+                    toastEl.setAttribute('role', 'alert');
+                    toastEl.innerHTML = `
+                        <div class="toast-header bg-success text-white">
+                            <i class="bi bi-person-plus-fill me-2"></i>
+                            <strong class="me-auto">Khách hàng mới (Real-time)</strong>
+                            <small>${data.timestamp || 'Vừa xong'}</small>
+                            <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast"></button>
+                        </div>
+                        <div class="toast-body bg-white text-dark">
+                            <div class="mb-2">${data.message || ''}</div>
+                            <div class="text-end"><a href="/customers" class="btn btn-sm btn-success rounded-pill px-3">Xem danh sách KH</a></div>
+                        </div>
+                    `;
+                    toastContainer.appendChild(toastEl);
+                    setTimeout(() => {
+                        toastEl.classList.remove('show');
+                        setTimeout(() => toastEl.remove(), 400);
+                    }, 8000);
+                }
+
+                // Cập nhật trực tiếp bảng Quản lý Khách hàng (/customers) KHÔNG CẦN RELOAD
+                const tbody = document.getElementById('customerTableBody');
+                if (tbody && c.id) {
+                    const emptyRow = document.getElementById('customerEmptyRow');
+                    if (emptyRow) emptyRow.remove();
+
+                    const rowHtml = `
+                        <td class="ps-4 fw-semibold text-muted">${c.id}</td>
+                        <td class="fw-bold text-dark">${c.fullName}</td>
+                        <td>
+                            <a href="tel:${c.phone}" class="text-decoration-none text-dark">
+                                <i class="bi bi-telephone-fill text-muted me-1"></i>
+                                <span>${c.phone}</span>
+                            </a>
+                        </td>
+                        <td>
+                            ${c.email ? `<i class="bi bi-envelope text-muted me-1"></i><span>${c.email}</span>` : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">${c.idNumber || 'Chưa có'}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="/customers/${c.id}/edit" class="btn btn-sm btn-outline-primary rounded-pill me-1">
+                                <i class="bi bi-pencil"></i> Sửa
+                            </a>
+                            <form action="/customers/${c.id}/delete" method="post" class="d-inline"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa khách hàng này?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                            </form>
+                        </td>
+                    `;
+
+                    const existingRow = document.getElementById('customer-row-' + c.id);
+                    if (existingRow) {
+                        existingRow.innerHTML = rowHtml;
+                        existingRow.style.transition = 'background-color 0.8s ease';
+                        existingRow.style.backgroundColor = '#fef9c3';
+                        setTimeout(() => { existingRow.style.backgroundColor = ''; }, 2500);
+                    } else {
+                        const tr = document.createElement('tr');
+                        tr.id = 'customer-row-' + c.id;
+                        tr.innerHTML = rowHtml;
+                        tr.style.transition = 'background-color 1s ease';
+                        tr.style.backgroundColor = '#dcfce7';
+                        tbody.prepend(tr);
+                        setTimeout(() => { tr.style.backgroundColor = ''; }, 3000);
+                    }
+                }
+
+                // Cập nhật số lượng khách hàng trên Dashboard
+                if (stats && stats.totalCustomers !== undefined) {
+                    const custCountEl = document.getElementById('statTotalCustomers');
+                    if (custCountEl) {
+                        custCountEl.textContent = stats.totalCustomers + ' khách';
+                    }
+                }
+            }
+
+            function handleRealtimeBookingEvent(data) {
+                const b = data.booking || {};
+                const stats = data.stats || null;
+
+                const isStaffOrAdminUser = bellBtn && bellBtn.getAttribute('data-staff-or-admin') === 'true';
+                const currentUserEmail = bellBtn ? (bellBtn.getAttribute('data-user-email') || '').toLowerCase() : '';
+                const bookingEmail = (b.customerEmail || '').toLowerCase();
+                const isMyBooking = currentUserEmail && bookingEmail && currentUserEmail === bookingEmail;
+
+                // 1. Hiển thị Toast thông báo & thêm vào chuông cho Admin/Nhân viên hoặc đúng Khách hàng sở hữu đơn
+                if (bellBtn && (isStaffOrAdminUser || isMyBooking)) {
+                    unreadCount++;
+                    if (badgeEl) {
+                        badgeEl.textContent = unreadCount;
+                        badgeEl.classList.remove('d-none');
+                    }
+                    if (listEl) {
+                        const emptyItem = document.getElementById('realtimeEmptyItem');
+                        if (emptyItem) emptyItem.remove();
+
+                        const item = document.createElement('a');
+                        item.href = b.id ? ('/bookings/' + b.id) : '/bookings';
+                        item.className = 'list-group-item list-group-item-action py-2 px-3';
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-primary">#${b.id || ''}</span>
+                                <small class="text-muted" style="font-size:0.7rem;">${data.timestamp || 'Vừa xong'}</small>
+                            </div>
+                            <div class="fw-semibold text-dark">${data.message || ''}</div>
+                        `;
+                        listEl.prepend(item);
+                    }
+
+                    showRealtimeToast(data);
+                }
+
+                // 2. Cập nhật trực tiếp bảng Đơn đặt phòng (/bookings) KHÔNG CẦN RELOAD
+                updateBookingTableRealtime(data);
+
+                // 3. Cập nhật trực tiếp số liệu Dashboard (/dashboard) KHÔNG CẦN RELOAD
+                if (stats) {
+                    updateDashboardRealtime(stats);
+                }
+
+                // 4. Cập nhật trực tiếp thẻ Phòng (/rooms) KHÔNG CẦN RELOAD
+                updateRoomCardsRealtime(data);
+            }
+
+            function showRealtimeToast(data) {
+                const b = data.booking || {};
+                let headerBg = 'bg-primary text-white';
+                let titleText = 'Yêu cầu đặt phòng mới (Chờ duyệt)';
+                if (data.eventType === 'BOOKING_APPROVED') {
+                    headerBg = 'bg-success text-white';
+                    titleText = 'Đặt phòng thành công (Đã chấp nhận)';
+                } else if (data.eventType === 'BOOKING_REJECTED') {
+                    headerBg = 'bg-danger text-white';
+                    titleText = 'Từ chối đặt phòng & Tặng mã giảm giá';
+                } else if (data.eventType === 'BOOKING_CHECKED_IN') {
+                    headerBg = 'bg-success text-white';
+                    titleText = 'Xác nhận Checked-in (Mở khóa thanh toán)';
+                } else if (data.eventType === 'BOOKING_PAID') {
+                    headerBg = 'bg-info text-dark';
+                    titleText = 'Đã thanh toán hóa đơn';
+                } else if (data.eventType === 'BOOKING_CASH_REQUEST') {
+                    headerBg = 'bg-warning text-dark';
+                    titleText = 'Khách chọn Thanh toán Tiền mặt tại quầy';
+                } else if (data.eventType === 'BOOKING_CHECKED_OUT') {
+                    headerBg = 'bg-secondary text-white';
+                    titleText = 'Hoàn tất trả phòng & Giải phóng phòng trống';
+                } else if (data.eventType === 'BOOKING_CANCELLED') {
+                    headerBg = 'bg-danger text-white';
+                    titleText = 'Đơn đặt phòng đã hủy';
+                }
+
+                const toastEl = document.createElement('div');
+                toastEl.className = 'toast show shadow-lg border-0 mb-2';
+                toastEl.setAttribute('role', 'alert');
+                toastEl.innerHTML = `
+                    <div class="toast-header ${headerBg}">
+                        <i class="bi bi-bell-fill me-2"></i>
+                        <strong class="me-auto">${titleText}</strong>
+                        <small>${data.timestamp || 'Vừa xong'}</small>
+                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body bg-white text-dark">
+                        <div class="mb-2">${data.message || ''}</div>
+                        ${b.compensationCode ? `<div class="p-2 mb-2 rounded bg-warning bg-opacity-25 border border-warning small">🎁 Mã đền bù: <strong class="text-danger">${b.compensationCode}</strong> (Giảm ${b.compensationDiscount}%)</div>` : ''}
+                        ${b.id ? `<div class="text-end"><a href="/bookings/${b.id}" class="btn btn-sm btn-primary rounded-pill px-3">Xem đơn #${b.id}</a></div>` : ''}
+                    </div>
+                `;
+                toastContainer.appendChild(toastEl);
+                setTimeout(() => {
+                    toastEl.classList.remove('show');
+                    setTimeout(() => toastEl.remove(), 400);
+                }, 9000);
+            }
+
+            function updateBookingTableRealtime(data) {
+                const tbody = document.getElementById('bookingTableBody');
+                if (!tbody || !data.booking) return;
+
+                const isStaffOrAdmin = tbody.getAttribute('data-staff-or-admin') === 'true';
+                const b = data.booking;
+                const existingRow = document.getElementById('booking-row-' + b.id);
+
+                // Khách hàng chỉ cập nhật những đơn thuộc về mình đã có trên bảng
+                if (!isStaffOrAdmin && !existingRow) return;
+
+                const emptyRow = document.getElementById('bookingEmptyRow');
+                if (emptyRow) emptyRow.remove();
+
+                let badgeHtml = `<span class="badge px-3 py-1 rounded-pill badge-status-booked">${b.statusLabel}</span>`;
+                if (b.status === 'PENDING') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Chờ xác nhận</span>`;
+                } else if (b.status === 'BOOKED') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill badge-status-booked"><i class="bi bi-check2-circle me-1"></i>Đã chấp nhận</span>`;
+                } else if (b.status === 'CHECKED_IN') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill badge-status-checkedin"><i class="bi bi-person-check-fill me-1"></i>Checked-in (Đang ở)</span>`;
+                } else if (b.status === 'PAID') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill bg-info text-dark"><i class="bi bi-credit-card-check me-1"></i>Đã thanh toán</span>`;
+                } else if (b.status === 'CHECKED_OUT') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill badge-status-checkedout"><i class="bi bi-archive me-1"></i>Hoàn tất (Đã trả)</span>`;
+                } else if (b.status === 'REJECTED') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill bg-danger"><i class="bi bi-x-octagon me-1"></i>Bị từ chối</span>`;
+                } else if (b.status === 'CANCELLED') {
+                    badgeHtml = `<span class="badge px-3 py-1 rounded-pill badge-status-cancelled">Đã hủy</span>`;
+                }
+
+                let extraStatusInfo = '';
+                if (b.status === 'REJECTED') {
+                    extraStatusInfo = `
+                        <div class="mt-2 p-2 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 small">
+                            <div class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Lý do: <span>${b.rejectReason || ''}</span></div>
+                            ${b.compensationCode ? `<div class="text-dark mt-1"><i class="bi bi-gift-fill text-warning me-1"></i>Mã đền bù <strong>${b.compensationDiscount}%</strong>: <code class="fw-bold text-primary bg-white px-2 py-0 rounded border">${b.compensationCode}</code></div>` : ''}
+                        </div>
+                    `;
+                } else if (b.status === 'BOOKED' && !isStaffOrAdmin) {
+                    extraStatusInfo = `
+                        <div class="mt-1 small text-success fw-semibold">
+                            <i class="bi bi-bell-fill me-1"></i>Đặt phòng thành công! Vui lòng đến nhận phòng đúng hẹn.
+                        </div>
+                    `;
+                }
+
+                let actionsHtml = `
+                    <a href="/bookings/${b.id}" class="btn btn-sm btn-outline-info rounded-pill me-1" title="Chi tiết & Lịch sử đơn">
+                        <i class="bi bi-eye"></i> Chi tiết
+                    </a>
+                `;
+                if (b.status === 'PENDING' && isStaffOrAdmin) {
+                    actionsHtml += `
+                        <form action="/bookings/${b.id}/approve" method="post" class="d-inline"
+                              onsubmit="return confirm('Chấp nhận yêu cầu đặt phòng này và gửi thông báo cho khách hàng?');">
+                            <button type="submit" class="btn btn-sm btn-success rounded-pill me-1">
+                                <i class="bi bi-check-lg"></i> Chấp nhận
+                            </button>
+                        </form>
+                        <a href="/bookings/${b.id}" class="btn btn-sm btn-danger rounded-pill me-1">
+                            <i class="bi bi-x-lg"></i> Từ chối & Đền bù
+                        </a>
+                    `;
+                } else if (b.status === 'BOOKED' && isStaffOrAdmin) {
+                    actionsHtml += `
+                        <form action="/bookings/${b.id}/check-in" method="post" class="d-inline"
+                              onsubmit="return confirm('Xác nhận khách đã đến nhận phòng (Checked-in)? Sau khi confirm sẽ mở khóa chức năng Thanh toán.');">
+                            <button type="submit" class="btn btn-sm btn-primary rounded-pill me-1">
+                                <i class="bi bi-box-arrow-in-right"></i> Confirm Checked-in
+                            </button>
+                        </form>
+                    `;
+                } else if (b.status === 'CHECKED_IN' && isStaffOrAdmin) {
+                    actionsHtml += `
+                        <a href="/bookings/${b.id}#paymentSectionAdmin" class="btn btn-sm btn-warning text-dark fw-semibold rounded-pill me-1">
+                            <i class="bi bi-cash-coin"></i> Xác nhận Thanh toán
+                        </a>
+                    `;
+                } else if (b.status === 'CHECKED_IN' && !isStaffOrAdmin) {
+                    actionsHtml += `
+                        <a href="/bookings/${b.id}#paymentSection" class="btn btn-sm btn-success fw-semibold rounded-pill me-1">
+                            <i class="bi bi-qr-code-scan"></i> Thanh toán Online
+                        </a>
+                    `;
+                } else if (b.status === 'PAID' && isStaffOrAdmin) {
+                    actionsHtml += `
+                        <form action="/bookings/${b.id}/release-room" method="post" class="d-inline"
+                              onsubmit="return confirm('Xác nhận khách đã hết hạn lưu trú / rời đi và chuyển phòng về trạng thái Trống?');">
+                            <button type="submit" class="btn btn-sm btn-outline-success rounded-pill me-1">
+                                <i class="bi bi-door-open"></i> Về trống
+                            </button>
+                        </form>
+                    `;
+                }
+
+                const voucherBadge = b.appliedVoucherCode
+                    ? `<div class="mt-1"><span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-ticket-perforated me-1"></i>Voucher: <span>${b.appliedVoucherCode}</span> (-<span>${b.discountPercent}</span>%)</span></div>`
+                    : '';
+
+                const rowCellsHtml = `
+                    <td class="ps-4 fw-semibold text-muted">#${b.id}</td>
+                    <td>
+                        <div class="fw-bold text-dark">${b.customerName}</div>
+                        <small class="text-muted"><i class="bi bi-telephone me-1"></i><span>${b.customerPhone}</span></small>
+                        ${voucherBadge}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary bg-opacity-10 text-dark fs-6 px-3 py-1">
+                            <i class="bi bi-door-closed text-primary me-1"></i>
+                            <strong>${b.roomNumber}</strong>
+                        </span>
+                        <small class="d-block text-muted">${b.roomTypeName}</small>
+                    </td>
+                    <td class="fw-semibold text-dark">${b.checkIn}</td>
+                    <td class="fw-semibold text-dark">${b.checkOut}</td>
+                    <td>
+                        ${badgeHtml}
+                        ${extraStatusInfo}
+                    </td>
+                    <td class="text-end pe-4">${actionsHtml}</td>
+                `;
+
+                if (existingRow) {
+                    existingRow.innerHTML = rowCellsHtml;
+                    existingRow.style.transition = 'background-color 0.8s ease';
+                    existingRow.style.backgroundColor = '#fef9c3';
+                    setTimeout(() => { existingRow.style.backgroundColor = ''; }, 2500);
+                } else if (data.eventType === 'BOOKING_CREATED' && isStaffOrAdmin) {
+                    const tr = document.createElement('tr');
+                    tr.id = 'booking-row-' + b.id;
+                    tr.innerHTML = rowCellsHtml;
+                    tr.style.transition = 'background-color 1s ease';
+                    tr.style.backgroundColor = '#dcfce7';
+                    tbody.prepend(tr);
+                    setTimeout(() => { tr.style.backgroundColor = ''; }, 3000);
+                }
+            }
+
+            function updateDashboardRealtime(stats) {
+                const mapIds = {
+                    'statAvailableRooms': stats.availableRooms,
+                    'statOccupiedRooms': stats.occupiedRooms,
+                    'statMonthRevenue': stats.monthRevenueFormatted,
+                    'statBookingsToday': stats.bookingsToday,
+                    'summaryAvailableRooms': stats.availableRooms,
+                    'summaryOccupiedRooms': stats.occupiedRooms,
+                    'summaryMaintenanceRooms': stats.maintenanceRooms
+                };
+                Object.keys(mapIds).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && mapIds[id] !== undefined && mapIds[id] !== null) {
+                        el.textContent = mapIds[id];
+                        el.style.transition = 'transform 0.3s ease';
+                        el.style.transform = 'scale(1.15)';
+                        setTimeout(() => { el.style.transform = 'scale(1)'; }, 400);
+                    }
+                });
+            }
+
+            function updateRoomCardsRealtime(data) {
+                const b = data.booking;
+                if (!b || !b.roomId) return;
+
+                const badgeEl = document.getElementById('room-badge-' + b.roomId);
+                const infoEl = document.getElementById('room-info-' + b.roomId);
+
+                if (badgeEl) {
+                    badgeEl.className = 'position-absolute top-0 end-0 m-2 badge rounded-pill px-3 py-1 shadow-sm ';
+                    if (b.roomStatus === 'OCCUPIED' && b.status === 'PAID') {
+                        badgeEl.className += 'bg-info text-dark';
+                        badgeEl.textContent = 'Đã thanh toán';
+                    } else if (b.roomStatus === 'OCCUPIED') {
+                        badgeEl.className += 'badge-status-occupied';
+                        badgeEl.textContent = 'Đang ở';
+                    } else if (b.roomStatus === 'AVAILABLE') {
+                        badgeEl.className += 'badge-status-available';
+                        badgeEl.textContent = 'Trống';
+                    } else {
+                        badgeEl.className += 'badge-status-maintenance';
+                        badgeEl.textContent = 'Bảo trì';
+                    }
+                }
+
+                if (infoEl) {
+                    const isStaffOrAdminView = bellBtn && bellBtn.getAttribute('data-staff-or-admin') === 'true';
+                    if (b.roomStatus === 'OCCUPIED') {
+                        const guestLine = isStaffOrAdminView
+                            ? `<div class="text-danger fw-semibold"><i class="bi bi-person-fill-lock me-1"></i>Đang có khách: <span>${b.customerName}</span></div>`
+                            : `<div class="text-danger fw-semibold"><i class="bi bi-door-closed-fill me-1"></i>Phòng đang có khách lưu trú</div>`;
+                        const paidLine = b.status === 'PAID'
+                            ? `<div class="mt-1"><span class="badge bg-info text-dark"><i class="bi bi-credit-card-check me-1"></i>Đã thanh toán - Chờ hết hạn ngày trả phòng</span></div>`
+                            : '';
+                        infoEl.innerHTML = `
+                            ${guestLine}
+                            ${paidLine}
+                            <div class="text-primary small mt-1">
+                                <i class="bi bi-calendar-check me-1"></i>Phòng trống từ ngày: <strong>${b.checkOut}</strong>
+                            </div>
+                        `;
+                    } else if (b.roomStatus === 'AVAILABLE') {
+                        infoEl.innerHTML = `
+                            <div class="text-success fw-semibold">
+                                <i class="bi bi-check-circle-fill me-1"></i>Phòng đang trống hôm nay
+                            </div>
+                            <div class="text-muted small">
+                                Có thể nhận phòng ngay hôm nay
+                            </div>
+                        `;
+                    }
+                }
+            }
+        })();
     </script>
 </th:block>
 </body>

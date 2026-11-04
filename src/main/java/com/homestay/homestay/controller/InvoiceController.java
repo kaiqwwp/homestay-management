@@ -53,8 +53,9 @@ public class InvoiceController {
                            @ModelAttribute("paymentDto") PaymentDto paymentDto,
                            RedirectAttributes redirectAttributes) {
         Invoice invoice = invoiceService.checkOutAndCreateInvoice(bookingId, paymentDto.getPaymentMethod());
-        redirectAttributes.addFlashAttribute("successMessage", "Trả phòng và thanh toán hóa đơn #" + invoice.getId() + " thành công!");
-        return "redirect:/invoices/" + invoice.getId();
+        redirectAttributes.addFlashAttribute("successMessage",
+                "Đã thanh toán hóa đơn #" + invoice.getId() + " thành công! Trạng thái đơn đã chuyển sang Đã thanh toán và lưu vào lịch sử hệ thống.");
+        return "redirect:/bookings/" + bookingId;
     }
 
     @PostMapping("/bookings/{bookingId}/services")

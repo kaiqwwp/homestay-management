@@ -12,12 +12,15 @@ import com.homestay.homestay.repository.BookingRepository;
 import com.homestay.homestay.repository.BookingServiceRepository;
 import com.homestay.homestay.repository.InvoiceRepository;
 import com.homestay.homestay.repository.RoomRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -31,6 +34,9 @@ public class InvoiceService {
     private final ServiceItemService serviceItemService;
     private final RoomRepository roomRepository;
     private final EmailService emailService;
+
+    @Autowired(required = false)
+    private RealtimeEventService realtimeEventService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           BookingRepository bookingRepository,
@@ -70,7 +76,7 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng: " + bookingId));
 
         if (!"CHECKED_IN".equals(booking.getStatus())) {
-            throw new BusinessException("Chỉ có thể thêm dịch vụ khi khách đang nhận phòng (CHECKED_IN).");
+            throw new BusinessException("Chỉ có thể thêm dịch vụ khi khách đang nhận phòng (CHECKED_IN) và chưa thanh toán.");
         }
 
         ServiceItem serviceItem = serviceItemService.findById(dto.getServiceId());
@@ -79,7 +85,6 @@ public class InvoiceService {
         bs.setBooking(booking);
         bs.setService(serviceItem);
         bs.setQuantity(dto.getQuantity());
-        // Chốt đơn giá tại thời điểm dùng
         bs.setUnitPrice(serviceItem.getUnitPrice());
         bs.setUsedAt(LocalDateTime.now());
 
@@ -117,43 +122,80 @@ public class InvoiceService {
         return total;
     }
 
+    public BigDecimal calculateDiscountAmount(Booking booking, BigDecimal roomTotal, BigDecimal serviceTotal) {
+        int pct = (booking.getDiscountPercent() != null) ? booking.getDiscountPercent() : 0;
+        if (pct <= 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal subTotal = roomTotal.add(serviceTotal);
+        return subTotal.multiply(BigDecimal.valueOf(pct))
+                .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+    }
+
     @Transactional
     public Invoice checkOutAndCreateInvoice(Long bookingId, String paymentMethod) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng: " + bookingId));
 
         if (!"CHECKED_IN".equals(booking.getStatus())) {
-            throw new BusinessException("Chỉ có thể trả phòng và thanh toán khi đơn ở trạng thái 'Đang ở' (CHECKED_IN).");
+            throw new BusinessException("Chỉ có thể thanh toán khi khách đã nhận phòng (CHECKED_IN).");
         }
 
         if (invoiceRepository.findByBookingId(bookingId).isPresent()) {
-            throw new BusinessException("Đơn đặt phòng này đã được tạo hóa đơn.");
+            throw new BusinessException("Đơn đặt phòng này đã được tạo hóa đơn thanh toán.");
         }
 
         BigDecimal roomTotal = calculateRoomTotal(booking);
         BigDecimal serviceTotal = calculateServiceTotal(booking);
-        BigDecimal total = roomTotal.add(serviceTotal);
+        BigDecimal discountAmount = calculateDiscountAmount(booking, roomTotal, serviceTotal);
+        BigDecimal total = roomTotal.add(serviceTotal).subtract(discountAmount);
+        if (total.compareTo(BigDecimal.ZERO) < 0) {
+            total = BigDecimal.ZERO;
+        }
 
+        LocalDateTime now = LocalDateTime.now();
         Invoice invoice = new Invoice();
         invoice.setBooking(booking);
         invoice.setRoomTotal(roomTotal);
         invoice.setServiceTotal(serviceTotal);
+        invoice.setDiscountAmount(discountAmount);
         invoice.setTotal(total);
-        invoice.setPaidAt(LocalDateTime.now());
+        invoice.setPaidAt(now);
         invoice.setPaymentMethod(paymentMethod != null ? paymentMethod : "Tiền mặt");
 
         Invoice savedInvoice = invoiceRepository.save(invoice);
 
-        // Chuyển trạng thái booking sang CHECKED_OUT
-        booking.setStatus("CHECKED_OUT");
+        booking.setPaidAt(now);
+        Room room = booking.getRoom();
+
+        // Nếu đã đến hoặc qua ngày trả phòng (checkOut <= today) -> chuyển về CHECKED_OUT và phòng về AVAILABLE ngay
+        // Nếu chưa hết hạn ngày trả phòng (checkOut > today) -> chuyển sang PAID (Đã thanh toán), khi hết hạn ngày sẽ tự động về AVAILABLE
+        if (!booking.getCheckOut().isAfter(LocalDate.now())) {
+            booking.setStatus("CHECKED_OUT");
+            booking.setCheckedOutAt(now);
+            room.setStatus("AVAILABLE");
+            roomRepository.save(room);
+        } else {
+            booking.setStatus("PAID");
+            room.setStatus("OCCUPIED");
+            roomRepository.save(room);
+        }
         bookingRepository.save(booking);
 
-        // Chuyển trạng thái phòng về AVAILABLE
-        Room room = booking.getRoom();
-        room.setStatus("AVAILABLE");
-        roomRepository.save(room);
-
         emailService.sendInvoiceReceipt(savedInvoice);
+
+        if (realtimeEventService != null) {
+            String msg;
+            if ("PAID".equals(booking.getStatus())) {
+                msg = String.format("Đã thanh toán đơn #%d: Phòng %s đã đổi sang trạng thái ĐÃ THANH TOÁN (Sẽ tự động về Trống khi hết hạn ngày %s)",
+                        booking.getId(), room.getRoomNumber(), booking.getCheckOut());
+                realtimeEventService.publishBookingEvent("BOOKING_PAID", booking, msg);
+            } else {
+                msg = String.format("Thanh toán & Trả phòng #%d: Phòng %s hiện đã TRỐNG (AVAILABLE) và lưu lịch sử.",
+                        booking.getId(), room.getRoomNumber());
+                realtimeEventService.publishBookingEvent("BOOKING_CHECKED_OUT", booking, msg);
+            }
+        }
 
         return savedInvoice;
     }

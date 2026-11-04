@@ -38,7 +38,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 user = new User();
                 user.setUsername(email);
                 user.setPassword("{noop}");
-                user.setFullName(name != null ? name : email);
+                // Mặc định lấy tên hiển thị của Gmail, nếu trống thì lấy phần trước @ của email
+                String defaultGmailName = (name != null && !name.isBlank()) ? name.trim() : email.split("@")[0];
+                user.setFullName(defaultGmailName);
                 user.setEmail(email);
                 user.setRole("CUSTOMER");
                 user.setAuthProvider("GOOGLE");

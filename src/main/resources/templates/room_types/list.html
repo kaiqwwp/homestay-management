@@ -13,10 +13,10 @@
                 <p class="text-muted small mb-0">Thiết lập cấu hình phòng, sức chứa và đơn giá theo đêm</p>
             </div>
             <div class="d-flex gap-2">
-                <a th:href="@{/reports/room-types.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
+                <a th:if="${isAdmin}" th:href="@{/reports/room-types.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
                     <i class="bi bi-file-pdf me-1"></i> Xuất PDF
                 </a>
-                <a th:href="@{/room-types/new}" class="btn btn-primary rounded-pill">
+                <a th:if="${isStaffOrAdmin}" th:href="@{/room-types/new}" class="btn btn-primary rounded-pill">
                     <i class="bi bi-plus-circle me-1"></i> Thêm loại phòng
                 </a>
             </div>
@@ -32,7 +32,7 @@
                             <th>Giá mỗi đêm</th>
                             <th>Sức chứa</th>
                             <th>Mô tả tiện ích</th>
-                            <th class="text-end pe-4">Thao tác</th>
+                            <th class="text-end pe-4" th:if="${isStaffOrAdmin}">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,7 +47,7 @@
                                 </span>
                             </td>
                             <td class="text-muted small" th:text="${rt.description}">Giường đơn view vườn</td>
-                            <td class="text-end pe-4">
+                            <td class="text-end pe-4" th:if="${isStaffOrAdmin}">
                                 <a th:href="@{/room-types/{id}/edit(id=${rt.id})}" class="btn btn-sm btn-outline-primary rounded-pill me-1">
                                     <i class="bi bi-pencil"></i> Sửa
                                 </a>

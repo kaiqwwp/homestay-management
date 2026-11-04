@@ -49,8 +49,8 @@
                             <th class="text-end pe-4">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="c : ${customerPage.content}">
+                    <tbody id="customerTableBody">
+                        <tr th:each="c : ${customerPage.content}" th:id="'customer-row-' + ${c.id}">
                             <td class="ps-4 fw-semibold text-muted" th:text="${c.id}">1</td>
                             <td class="fw-bold text-dark" th:text="${c.fullName}">Nguyễn Văn A</td>
                             <td>
@@ -81,7 +81,7 @@
                                 </form>
                             </td>
                         </tr>
-                        <tr th:if="${customerPage.empty}">
+                        <tr id="customerEmptyRow" th:if="${customerPage.empty}">
                             <td colspan="6" class="text-center py-4 text-muted">Không tìm thấy khách hàng nào.</td>
                         </tr>
                     </tbody>

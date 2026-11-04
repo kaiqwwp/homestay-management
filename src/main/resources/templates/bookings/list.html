@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Quản lý đặt phòng')}"></head>
+<head th:replace="~{fragments/layout :: head(${title})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 <div th:replace="~{fragments/layout :: alerts}"></div>
@@ -10,19 +10,44 @@
         <!-- Header -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="fw-bold mb-1"><i class="bi bi-calendar2-check text-primary me-2"></i>Danh sách Đơn đặt phòng</h3>
-                <p class="text-muted small mb-0">Theo dõi quy trình nhận phòng, lưu trú, trả phòng và hủy phòng</p>
+                <h3 class="fw-bold mb-1">
+                    <i class="bi bi-calendar2-check text-primary me-2"></i>
+                    <span th:text="${isStaffOrAdmin ? 'Quản lý & Lịch sử Đơn đặt phòng' : 'Lịch sử phòng đã đặt của tôi'}">Danh sách Đơn đặt phòng</span>
+                </h3>
+                <p class="text-muted small mb-0" th:text="${isStaffOrAdmin ? 'Duyệt yêu cầu đặt phòng (Chấp nhận / Từ chối đền bù), xác nhận Check-in, Thanh toán và lưu trữ lịch sử hệ thống' : 'Theo dõi trạng thái phê duyệt, mã giảm giá đền bù và lịch sử chi tiết các phòng bạn đã đặt'}"></p>
             </div>
             <div class="d-flex gap-2">
-                <a th:href="@{/reports/bookings.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
+                <a th:if="${isAdmin}" th:href="@{/reports/bookings.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
                     <i class="bi bi-file-pdf me-1"></i> Báo cáo PDF
                 </a>
-                <a th:href="@{/bookings/calendar}" class="btn btn-outline-primary rounded-pill">
+                <a th:if="${isStaffOrAdmin}" th:href="@{/bookings/calendar}" class="btn btn-outline-primary rounded-pill">
                     <i class="bi bi-calendar3 me-1"></i> Lịch phòng theo ngày
                 </a>
                 <a th:href="@{/bookings/new}" class="btn btn-primary rounded-pill">
-                    <i class="bi bi-plus-circle me-1"></i> Tạo đơn đặt phòng
+                    <i class="bi bi-plus-circle me-1"></i> Đặt phòng mới
                 </a>
+            </div>
+        </div>
+
+        <!-- Khung hiển thị Mã giảm giá đền bù dành cho Khách hàng (nếu có) -->
+        <div th:if="${isCustomer and availableVouchers != null and !#lists.isEmpty(availableVouchers)}"
+             class="card border-warning border-2 bg-warning bg-opacity-10 p-3 mb-4 rounded-4 shadow-sm">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-gift-fill text-danger me-2"></i>Mã giảm giá đền bù của bạn (Chưa sử dụng)
+                    </h6>
+                    <p class="small text-muted mb-2">Khách sạn gửi tặng bạn mã giảm giá đền bù từ yêu cầu đặt phòng bị từ chối trước đó:</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div th:each="v : ${availableVouchers}" class="bg-white border border-warning rounded-pill px-3 py-1 d-inline-flex align-items-center gap-2 shadow-sm">
+                            <span class="fw-bold text-danger" th:text="${v.compensationCode}">DENBU10-XXXX</span>
+                            <span class="badge bg-danger" th:text="'Giảm ' + ${v.compensationDiscount} + '%'">Giảm 10%</span>
+                            <a th:href="@{/bookings/new(voucherCode=${v.compensationCode})}" class="btn btn-sm btn-primary rounded-pill py-0 px-2" style="font-size: 0.75rem;">
+                                Dùng ngay
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -32,15 +57,19 @@
                 <div class="col-12 col-md-3">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="keyword" th:value="${searchDto.keyword}" class="form-control border-start-0" placeholder="Tên khách, SĐT, số phòng...">
+                        <input type="text" name="keyword" th:value="${searchDto.keyword}" class="form-control border-start-0"
+                               th:placeholder="${isStaffOrAdmin ? 'Tên khách, SĐT, số phòng...' : 'Tìm theo số phòng...'}">
                     </div>
                 </div>
                 <div class="col-6 col-md-2">
                     <select name="status" class="form-select">
                         <option value="">-- Tất cả trạng thái --</option>
-                        <option value="BOOKED" th:selected="${searchDto.status == 'BOOKED'}">Đã đặt (BOOKED)</option>
-                        <option value="CHECKED_IN" th:selected="${searchDto.status == 'CHECKED_IN'}">Đang ở (CHECKED_IN)</option>
-                        <option value="CHECKED_OUT" th:selected="${searchDto.status == 'CHECKED_OUT'}">Đã trả (CHECKED_OUT)</option>
+                        <option value="PENDING" th:selected="${searchDto.status == 'PENDING'}">Chờ xác nhận (PENDING)</option>
+                        <option value="BOOKED" th:selected="${searchDto.status == 'BOOKED'}">Đã chấp nhận (BOOKED)</option>
+                        <option value="CHECKED_IN" th:selected="${searchDto.status == 'CHECKED_IN'}">Đang lưu trú (CHECKED_IN)</option>
+                        <option value="PAID" th:selected="${searchDto.status == 'PAID'}">Đã thanh toán (PAID)</option>
+                        <option value="CHECKED_OUT" th:selected="${searchDto.status == 'CHECKED_OUT'}">Hoàn tất / Đã trả (CHECKED_OUT)</option>
+                        <option value="REJECTED" th:selected="${searchDto.status == 'REJECTED'}">Đã từ chối (REJECTED)</option>
                         <option value="CANCELLED" th:selected="${searchDto.status == 'CANCELLED'}">Đã hủy (CANCELLED)</option>
                     </select>
                 </div>
@@ -52,7 +81,7 @@
                 </div>
                 <div class="col-6 col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-secondary w-100 rounded-pill">
-                        <i class="bi bi-filter me-1"></i> Lọc đơn
+                        <i class="bi bi-filter me-1"></i> Lọc lịch sử
                     </button>
                     <a th:href="@{/bookings}" class="btn btn-outline-secondary rounded-pill">
                         <i class="bi bi-arrow-counterclockwise"></i>
@@ -69,60 +98,184 @@
                         <tr>
                             <th class="ps-4">Mã đơn</th>
                             <th>Khách hàng</th>
-                            <th>Số phòng</th>
-                            <th>Ngày nhận phòng</th>
-                            <th>Ngày trả phòng</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end pe-4">Thao tác</th>
+                            <th>Phòng</th>
+                            <th>Thời gian lưu trú</th>
+                            <th>Trạng thái & Thông báo</th>
+                            <th class="text-end pe-4">Thao tác / Lịch sử</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="b : ${bookingPage.content}">
-                            <td class="ps-4 fw-semibold text-muted" th:text="'#' + ${b.id}">#1</td>
+                    <tbody id="bookingTableBody" th:attr="data-staff-or-admin=${isStaffOrAdmin}">
+                        <tr th:each="b : ${bookingPage.content}" th:id="'booking-row-' + ${b.id}">
+                            <td class="ps-4">
+                                <div class="fw-bold text-primary" th:text="'#' + ${b.id}">#1</div>
+                                <small class="text-muted" th:if="${b.createdAt != null}" th:text="${#temporals.format(b.createdAt, 'HH:mm dd/MM/yyyy')}"></small>
+                            </td>
                             <td>
                                 <div class="fw-bold text-dark" th:text="${b.customer.fullName}">Nguyễn Văn A</div>
                                 <small class="text-muted"><i class="bi bi-telephone me-1"></i><span th:text="${b.customer.phone}">0900000001</span></small>
+                                <div th:if="${b.appliedVoucherCode != null and !b.appliedVoucherCode.isEmpty()}">
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success mt-1">
+                                        <i class="bi bi-ticket-perforated me-1"></i>Đã dùng mã <span th:text="${b.appliedVoucherCode}"></span> (-<span th:text="${b.discountPercent}"></span>%)
+                                    </span>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-secondary bg-opacity-10 text-dark fs-6 px-3 py-1">
                                     <i class="bi bi-door-closed text-primary me-1"></i>
-                                    <strong th:text="${b.room.roomNumber}">101</strong>
+                                    <strong th:text="'Phòng ' + ${b.room.roomNumber}">Phòng 101</strong>
                                 </span>
-                                <small class="d-block text-muted" th:text="${b.room.roomType.name}">Phòng đôi</small>
+                                <small class="d-block text-muted mt-1" th:text="${b.room.roomType.name} + ' (' + ${#numbers.formatDecimal(b.room.roomType.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ/đêm)'">Phòng đôi</small>
                             </td>
-                            <td class="fw-semibold text-dark" th:text="${#temporals.format(b.checkIn, 'dd/MM/yyyy')}">26/10/2026</td>
-                            <td class="fw-semibold text-dark" th:text="${#temporals.format(b.checkOut, 'dd/MM/yyyy')}">28/10/2026</td>
                             <td>
-                                <span class="badge px-3 py-1 rounded-pill"
-                                      th:classappend="${b.status == 'BOOKED' ? 'badge-status-booked' : (b.status == 'CHECKED_IN' ? 'badge-status-checkedin' : (b.status == 'CHECKED_OUT' ? 'badge-status-checkedout' : 'badge-status-cancelled'))}"
-                                      th:text="${b.status == 'BOOKED' ? 'Đã đặt' : (b.status == 'CHECKED_IN' ? 'Đang ở' : (b.status == 'CHECKED_OUT' ? 'Đã trả' : 'Đã hủy'))}">
-                                    Đã đặt
+                                <div class="small">
+                                    <span class="text-muted">Nhận:</span>
+                                    <strong class="text-dark" th:text="${#temporals.format(b.checkIn, 'dd/MM/yyyy')}">04/11/2026</strong>
+                                </div>
+                                <div class="small">
+                                    <span class="text-muted">Trả:</span>
+                                    <strong class="text-dark" th:text="${#temporals.format(b.checkOut, 'dd/MM/yyyy')}">06/11/2026</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <!-- Badge trạng thái -->
+                                <span th:if="${b.status == 'PENDING'}" class="badge bg-warning text-dark px-3 py-1 rounded-pill">
+                                    <i class="bi bi-hourglass-split me-1"></i>Chờ khách sạn xác nhận
                                 </span>
+                                <span th:if="${b.status == 'BOOKED'}" class="badge badge-status-booked px-3 py-1 rounded-pill">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Đã chấp nhận (Chờ Check-in)
+                                </span>
+                                <span th:if="${b.status == 'CHECKED_IN'}" class="badge badge-status-checkedin px-3 py-1 rounded-pill">
+                                    <i class="bi bi-person-check-fill me-1"></i>Đang lưu trú (Checked-in)
+                                </span>
+                                <span th:if="${b.status == 'PAID'}" class="badge bg-success text-white px-3 py-1 rounded-pill">
+                                    <i class="bi bi-credit-card-check me-1"></i>Đã thanh toán
+                                </span>
+                                <span th:if="${b.status == 'CHECKED_OUT'}" class="badge badge-status-checkedout px-3 py-1 rounded-pill">
+                                    <i class="bi bi-archive-fill me-1"></i>Hoàn tất (Đã trả phòng)
+                                </span>
+                                <span th:if="${b.status == 'REJECTED'}" class="badge bg-danger text-white px-3 py-1 rounded-pill">
+                                    <i class="bi bi-x-octagon-fill me-1"></i>Khách sạn từ chối
+                                </span>
+                                <span th:if="${b.status == 'CANCELLED'}" class="badge badge-status-cancelled px-3 py-1 rounded-pill">
+                                    Đã hủy
+                                </span>
+
+                                <!-- Thông báo chi tiết cho khách khi được Chấp nhận -->
+                                <div th:if="${b.status == 'BOOKED'}" class="small text-success mt-1">
+                                    <i class="bi bi-bell-fill me-1"></i>Đặt phòng thành công! Nhận phòng từ 14:00 ngày <span th:text="${#temporals.format(b.checkIn, 'dd/MM/yyyy')}"></span>
+                                </div>
+
+                                <!-- Thông báo lý do từ chối & Mã giảm giá đền bù 5-10% -->
+                                <div th:if="${b.status == 'REJECTED'}" class="small mt-1 p-2 rounded bg-danger bg-opacity-10 border border-danger">
+                                    <div class="text-danger fw-semibold">
+                                        <i class="bi bi-info-circle-fill me-1"></i>Lý do: <span th:text="${b.rejectReason}">Sự cố phòng</span>
+                                    </div>
+                                    <div th:if="${b.compensationCode != null}" class="mt-1 text-dark">
+                                        🎁 Mã đền bù: <strong class="text-danger" th:text="${b.compensationCode}">DENBU10</strong>
+                                        (<strong th:text="'Giảm ' + ${b.compensationDiscount} + '%'">Giảm 10%</strong>)
+                                        <span th:if="${b.compensationUsed}" class="badge bg-secondary ms-1">Đã dùng</span>
+                                        <a th:if="${!b.compensationUsed and isCustomer}" th:href="@{/bookings/new(voucherCode=${b.compensationCode})}"
+                                           class="badge bg-primary text-decoration-none ms-1">Dùng đặt phòng ngay</a>
+                                    </div>
+                                </div>
                             </td>
                             <td class="text-end pe-4">
-                                <a th:href="@{/bookings/{id}(id=${b.id})}" class="btn btn-sm btn-outline-info rounded-pill me-1" title="Chi tiết đơn">
+                                <a th:href="@{/bookings/{id}(id=${b.id})}" class="btn btn-sm btn-outline-info rounded-pill me-1" title="Xem chi tiết & lịch sử đơn">
                                     <i class="bi bi-eye"></i> Chi tiết
                                 </a>
 
-                                <!-- Check-in button nếu đang BOOKED -->
-                                <form th:if="${b.status == 'BOOKED'}" th:action="@{/bookings/{id}/check-in(id=${b.id})}" method="post" class="d-inline"
-                                      onsubmit="return confirm('Xác nhận nhận phòng cho khách hàng này?');">
-                                    <button type="submit" class="btn btn-sm btn-success rounded-pill me-1">
-                                        <i class="bi bi-box-arrow-in-right"></i> Nhận phòng
+                                <!-- 1. Nút Chấp nhận & Từ chối khi đơn đang PENDING (Chỉ dành cho Admin / Staff) -->
+                                <form th:if="${b.status == 'PENDING' and isStaffOrAdmin}" th:action="@{/bookings/{id}/approve(id=${b.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success rounded-pill me-1" title="Chấp nhận yêu cầu đặt phòng">
+                                        <i class="bi bi-check-lg"></i> Chấp nhận
                                     </button>
                                 </form>
 
-                                <!-- Hủy button nếu đang BOOKED -->
-                                <form th:if="${b.status == 'BOOKED'}" th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" class="d-inline"
-                                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn đặt phòng này?');">
+                                <button th:if="${b.status == 'PENDING' and isStaffOrAdmin}" type="button"
+                                        class="btn btn-sm btn-danger rounded-pill me-1"
+                                        data-bs-toggle="modal"
+                                        th:attr="data-bs-target='#rejectModal-' + ${b.id}"
+                                        title="Từ chối & gửi mã giảm giá đền bù">
+                                    <i class="bi bi-x-lg"></i> Từ chối
+                                </button>
+
+                                <!-- 2. Đến ngày Check-in: Nút Confirm Checked-in khi đơn đã được chấp nhận (BOOKED) -->
+                                <form th:if="${b.status == 'BOOKED' and isStaffOrAdmin}" th:action="@{/bookings/{id}/check-in(id=${b.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Xác nhận khách hàng đã nhận phòng (Checked-in)? Sau khi xác nhận, chức năng Thanh toán sẽ được mở khóa.');">
+                                    <button type="submit" class="btn btn-sm btn-primary rounded-pill me-1">
+                                        <i class="bi bi-box-arrow-in-right"></i> Confirm Check-in
+                                    </button>
+                                </form>
+
+                                <!-- 3. Sau khi Checked-in: Mở khóa nút Thanh toán cho cả Khách hàng (QR SePay / Tiền mặt) và Admin (Confirm Tiền mặt) -->
+                                <a th:if="${b.status == 'CHECKED_IN' and isCustomer}" th:href="@{/bookings/{id}#paymentSection(id=${b.id})}"
+                                   class="btn btn-sm btn-success fw-semibold rounded-pill me-1">
+                                    <i class="bi bi-qr-code-scan me-1"></i> Thanh toán Online
+                                </a>
+                                <a th:if="${b.status == 'CHECKED_IN' and isStaffOrAdmin}" th:href="@{/bookings/{id}#paymentSection(id=${b.id})}"
+                                   class="btn btn-sm btn-warning text-dark fw-semibold rounded-pill me-1">
+                                    <i class="bi bi-cash-coin me-1"></i> Xác nhận Thanh toán
+                                </a>
+
+                                <!-- 4. Khi đã PAID: Nút giải phóng phòng về Trống (hoặc tự động khi hết hạn ngày) -->
+                                <form th:if="${b.status == 'PAID' and isStaffOrAdmin}" th:action="@{/bookings/{id}/release-room(id=${b.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Xác nhận khách đã trả phòng và chuyển phòng này về trạng thái TRỐNG?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill me-1">
+                                        <i class="bi bi-door-open"></i> Chuyển về Trống
+                                    </button>
+                                </form>
+
+                                <!-- Nút Hủy đơn dành cho khách khi đơn đang PENDING -->
+                                <form th:if="${b.status == 'PENDING' and isCustomer}" th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu đặt phòng này?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
                                         <i class="bi bi-x-circle"></i> Hủy
                                     </button>
                                 </form>
+
+                                <!-- Modal Từ chối & Đền bù mã giảm giá 5-10% -->
+                                <div th:if="${b.status == 'PENDING' and isStaffOrAdmin}" class="modal fade text-start" th:id="'rejectModal-' + ${b.id}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow">
+                                            <form th:action="@{/bookings/{id}/reject(id=${b.id})}" method="post">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h6 class="modal-title fw-bold">
+                                                        <i class="bi bi-exclamation-octagon me-1"></i>Từ chối đơn #<span th:text="${b.id}"></span> & Tặng mã đền bù
+                                                    </h6>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p class="small text-muted mb-3">
+                                                        Khách hàng <strong th:text="${b.customer.fullName}"></strong> đặt <strong th:text="'Phòng ' + ${b.room.roomNumber}"></strong> sẽ nhận được thông báo từ chối kèm mã giảm giá đền bù.
+                                                    </p>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold small">Lý do từ chối <span class="text-danger">*</span></label>
+                                                        <textarea name="reason" class="form-control" rows="2" required
+                                                                  placeholder="Ví dụ: Phòng đang gặp sự cố kỹ thuật điều hòa / bị delay bảo trì...">Phòng đang gặp sự cố kỹ thuật đột xuất cần bảo trì</textarea>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label fw-semibold small">Mức mã giảm giá đền bù cho khách (5% - 10%) <span class="text-danger">*</span></label>
+                                                        <select name="discountPercent" class="form-select">
+                                                            <option value="5">Giảm 5% cho lần đặt phòng tiếp theo</option>
+                                                            <option value="7">Giảm 7% cho lần đặt phòng tiếp theo</option>
+                                                            <option value="10" selected>Giảm 10% cho lần đặt phòng tiếp theo</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                                                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4">
+                                                        <i class="bi bi-send-fill me-1"></i>Xác nhận Từ chối & Gửi mã đền bù
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
-                        <tr th:if="${bookingPage.empty}">
-                            <td colspan="7" class="text-center py-4 text-muted">Không tìm thấy đơn đặt phòng nào.</td>
+                        <tr id="bookingEmptyRow" th:if="${bookingPage.empty}">
+                            <td colspan="6" class="text-center py-4 text-muted">Chưa có đơn đặt phòng nào trong lịch sử.</td>
                         </tr>
                     </tbody>
                 </table>

@@ -1,5 +1,6 @@
 package com.homestay.homestay.controller;
 
+import com.homestay.homestay.dto.RoomCardDto;
 import com.homestay.homestay.dto.RoomDto;
 import com.homestay.homestay.entity.Room;
 import com.homestay.homestay.service.RoomService;
@@ -37,7 +38,7 @@ public class RoomController {
                        @RequestParam(value = "page", defaultValue = "0") int page,
                        @RequestParam(value = "size", defaultValue = "8") int size,
                        Model model) {
-        Page<Room> roomPage = roomService.filterRooms(status, roomTypeId, keyword, PageRequest.of(page, size));
+        Page<RoomCardDto> roomPage = roomService.filterRoomCards(status, roomTypeId, keyword, PageRequest.of(page, size));
 
         model.addAttribute("title", "Quản lý phòng");
         model.addAttribute("roomPage", roomPage);

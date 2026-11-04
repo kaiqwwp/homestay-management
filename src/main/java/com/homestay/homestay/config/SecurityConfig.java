@@ -1,5 +1,7 @@
 package com.homestay.homestay.config;
 
+import com.homestay.homestay.entity.User;
+import com.homestay.homestay.repository.UserRepository;
 import com.homestay.homestay.security.CustomOAuth2UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableMethodSecurity
@@ -21,9 +24,25 @@ public class SecurityConfig {
     @Autowired(required = false)
     private CustomOAuth2UserService customOAuth2UserService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler loginSuccessHandler() {
+        return (request, response, authentication) -> {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null && "CUSTOMER".equalsIgnoreCase(user.getRole()) && !user.hasCompleteProfile()) {
+                response.sendRedirect("/profile?requireUpdate=true");
+                return;
+            }
+            response.sendRedirect("/dashboard");
+        };
     }
 
     @Bean
@@ -41,7 +60,9 @@ public class SecurityConfig {
                 .requestMatchers("/reports/**").hasRole("ADMIN")
                 .requestMatchers(
                         "/customers/**", "/invoices/**",
-                        "/bookings/calendar", "/bookings/*/status", "/bookings/*/edit"
+                        "/bookings/calendar", "/bookings/*/approve", "/bookings/*/reject",
+                        "/bookings/*/check-in", "/bookings/*/release-room",
+                        "/bookings/*/status", "/bookings/*/edit"
                 ).hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers(
                         "/rooms/new", "/rooms/*/edit", "/rooms/*/delete",
@@ -53,7 +74,7 @@ public class SecurityConfig {
             .formLogin(login -> login
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/dashboard", true)
+                .successHandler(loginSuccessHandler())
                 .failureUrl("/login?error=true")
                 .permitAll()
             )
@@ -72,7 +93,7 @@ public class SecurityConfig {
         if (clientRegistrationRepository != null) {
             http.oauth2Login(oauth2 -> {
                 oauth2.loginPage("/login");
-                oauth2.defaultSuccessUrl("/dashboard", true);
+                oauth2.successHandler(loginSuccessHandler());
                 if (customOAuth2UserService != null) {
                     oauth2.userInfoEndpoint(info -> info.userService(customOAuth2UserService));
                 }

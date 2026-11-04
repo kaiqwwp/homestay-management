@@ -25,13 +25,16 @@ public class Invoice {
     @Column(name = "service_total", nullable = false)
     private BigDecimal serviceTotal = BigDecimal.ZERO;
 
+    @Column(name = "discount_amount")
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     @Column(nullable = false)
     private BigDecimal total;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    @Column(name = "payment_method", length = 30)
+    @Column(name = "payment_method", length = 100)
     private String paymentMethod;
 
     @Column(name = "payment_reference", length = 100)

@@ -12,36 +12,72 @@
                 <a th:href="@{/bookings}" class="btn btn-sm btn-outline-secondary rounded-circle me-3">
                     <i class="bi bi-arrow-left"></i>
                 </a>
-                <h4 class="fw-bold mb-0" th:text="${title}">Tạo đơn đặt phòng mới</h4>
+                <div>
+                    <h4 class="fw-bold mb-0" th:text="${title}">Tạo đơn đặt phòng mới</h4>
+                    <small class="text-muted" th:if="${isCustomer}">Sử dụng thông tin cá nhân của bạn để đặt phòng nhanh chóng</small>
+                    <small class="text-muted" th:if="${isStaffOrAdmin}">Nhập thông tin khách hàng lưu trú (hệ thống tự động lưu hồ sơ khách hàng theo thời gian thực)</small>
+                </div>
             </div>
 
             <form th:action="@{/bookings}" th:object="${bookingDto}" method="post">
-                <!-- Chọn khách hàng -->
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold mb-0">Khách hàng <span class="text-danger">*</span></label>
-                        <a th:href="@{/customers/new}" target="_blank" class="small text-decoration-none">
-                            <i class="bi bi-person-plus me-1"></i>Thêm khách hàng mới
+                <!-- Thông tin cá nhân người đặt phòng (Sử dụng thông tin cá nhân đã đăng ký của thành viên) -->
+                <div class="p-3 mb-4 rounded-3 bg-light border">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-primary mb-0">
+                            <i class="bi bi-person-vcard me-2"></i>Thông tin cá nhân người đặt phòng
+                        </h6>
+                        <a th:if="${isCustomer}" th:href="@{/profile}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-pencil-square me-1"></i>Cập nhật thông tin cá nhân
                         </a>
                     </div>
-                    <select class="form-select" th:field="*{customerId}" required>
-                        <option value="">-- Chọn khách hàng đã có --</option>
-                        <option th:each="c : ${customers}" th:value="${c.id}" 
-                                th:text="${c.fullName} + ' - ' + ${c.phone} + (${c.idNumber != null} ? ' (CCCD: ' + ${c.idNumber} + ')' : '')"></option>
-                    </select>
-                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('customerId')}" th:errors="*{customerId}"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{customerFullName}"
+                                   th:readonly="${isCustomer}"
+                                   placeholder="Nhập họ và tên đầy đủ" required/>
+                            <div class="text-danger small mt-1" th:if="${#fields.hasErrors('customerFullName')}" th:errors="*{customerFullName}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số điện thoại liên hệ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{customerPhone}"
+                                   th:readonly="${isCustomer}"
+                                   placeholder="Ví dụ: 0901234567" required/>
+                            <div class="text-danger small mt-1" th:if="${#fields.hasErrors('customerPhone')}" th:errors="*{customerPhone}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số CCCD / Passport <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{customerIdNumber}"
+                                   th:readonly="${isCustomer}"
+                                   placeholder="Nhập số CCCD hoặc Hộ chiếu" required/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email nhận xác nhận <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" th:field="*{customerEmail}"
+                                   th:readonly="${isCustomer}"
+                                   placeholder="example@email.com" required/>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Chọn ngày -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Ngày nhận phòng (Check-in) <span class="text-danger">*</span></label>
-                        <input type="date" id="checkInInput" class="form-control" th:field="*{checkIn}" required/>
+                        <input type="date" id="checkInInput" class="form-control" th:field="*{checkIn}"
+                               th:attr="min=${today}" required/>
+                        <div class="form-text text-primary small" id="checkInHint">
+                            <i class="bi bi-info-circle me-1"></i>Nhận phòng từ 14:00 ngày đã chọn (không chọn ngày trong quá khứ).
+                        </div>
                         <div class="text-danger small mt-1" th:if="${#fields.hasErrors('checkIn')}" th:errors="*{checkIn}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Ngày trả phòng (Check-out) <span class="text-danger">*</span></label>
-                        <input type="date" id="checkOutInput" class="form-control" th:field="*{checkOut}" required/>
+                        <input type="date" id="checkOutInput" class="form-control" th:field="*{checkOut}"
+                               th:attr="min=${minCheckOut}" required/>
+                        <div class="form-text text-muted small" id="stayDurationHint">
+                            <i class="bi bi-clock-history me-1"></i>Thời gian lưu trú dự kiến: <span id="stayNightsText" class="fw-bold">1 đêm</span>
+                        </div>
                         <div class="text-danger small mt-1" th:if="${#fields.hasErrors('checkOut')}" th:errors="*{checkOut}"></div>
                     </div>
                 </div>
@@ -60,6 +96,25 @@
                     <div class="text-danger small mt-1" th:if="${#fields.hasErrors('roomId')}" th:errors="*{roomId}"></div>
                 </div>
 
+                <!-- Mã giảm giá đền bù (nếu có) -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-ticket-perforated-fill text-danger me-1"></i>Mã giảm giá đền bù (Tùy chọn)
+                    </label>
+                    <input type="text" class="form-control" th:field="*{voucherCode}" id="voucherCodeInput"
+                           placeholder="Nhập mã giảm giá đền bù 5% - 10% (Ví dụ: DENBU10-XXXX)"/>
+                    <div th:if="${availableVouchers != null and !#lists.isEmpty(availableVouchers)}" class="mt-2">
+                        <small class="text-muted d-block mb-1">Bấm chọn nhanh mã đền bù hiện có của bạn:</small>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" th:each="v : ${availableVouchers}"
+                                    class="btn btn-sm btn-outline-danger rounded-pill py-0 px-3"
+                                    th:attr="onclick='document.getElementById(\'voucherCodeInput\').value=\'' + ${v.compensationCode} + '\''">
+                                <i class="bi bi-gift me-1"></i><span th:text="${v.compensationCode}"></span> (-<span th:text="${v.compensationDiscount} + '%'"></span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Ghi chú -->
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Ghi chú / Yêu cầu đặc biệt</label>
@@ -68,7 +123,7 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <a th:href="@{/bookings}" class="btn btn-outline-secondary rounded-pill px-4">Hủy</a>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    <button type="submit" id="submitBookingBtn" class="btn btn-primary rounded-pill px-4">
                         <i class="bi bi-check2 me-1"></i> Đặt phòng ngay
                     </button>
                 </div>
@@ -81,23 +136,88 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
 <script>
-    // Tự động cập nhật danh sách phòng trống khi thay đổi ngày
+    // Tự động kiểm tra ngày hợp lệ (không được chọn ngày quá khứ, ngày trả > ngày nhận) & cập nhật danh sách phòng trống
     const checkInEl = document.getElementById('checkInInput');
     const checkOutEl = document.getElementById('checkOutInput');
     const roomSelectEl = document.getElementById('roomSelect');
     const helperEl = document.getElementById('roomHelperText');
+    const submitBtn = document.getElementById('submitBookingBtn');
 
-    function updateAvailableRooms() {
+    function formatLocalDate(d) {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function addDaysToDateStr(dateStr, days) {
+        const parts = dateStr.split('-').map(Number);
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        d.setDate(d.getDate() + days);
+        return formatLocalDate(d);
+    }
+
+    const todayStr = checkInEl.getAttribute('min') || formatLocalDate(new Date());
+    checkInEl.min = todayStr;
+    if (checkInEl.value && checkInEl.value >= todayStr) {
+        checkOutEl.min = addDaysToDateStr(checkInEl.value, 1);
+    } else {
+        checkOutEl.min = addDaysToDateStr(todayStr, 1);
+    }
+
+    function updateAvailableRooms(changedByCheckIn) {
         const cIn = checkInEl.value;
-        const cOut = checkOutEl.value;
-        if (!cIn || !cOut) return;
+        let cOut = checkOutEl.value;
+        const stayNightsText = document.getElementById('stayNightsText');
+        const checkInHint = document.getElementById('checkInHint');
 
-        if (cOut <= cIn) {
-            helperEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Ngày trả phòng phải sau ngày nhận phòng.</span>';
+        if (!cIn) return;
+
+        // 1. Không cho phép ngày nhận phòng trong quá khứ
+        if (cIn < todayStr) {
+            checkInHint.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Không được phép chọn ngày nhận phòng trong quá khứ (trước ngày ${todayStr})!</span>`;
+            helperEl.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Vui lòng chọn ngày nhận phòng từ hôm nay trở đi.</span>';
+            if (stayNightsText) stayNightsText.textContent = 'Ngày không hợp lệ';
+            if (submitBtn) submitBtn.disabled = true;
             return;
         }
 
-        helperEl.innerHTML = '<span class="text-primary"><i class="bi bi-hourglass-split me-1"></i>Đang kiểm tra phòng trống...</span>';
+        // Cập nhật giới hạn min của ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày
+        const minCheckOutStr = addDaysToDateStr(cIn, 1);
+        checkOutEl.min = minCheckOutStr;
+
+        // Nếu người dùng vừa đổi ngày nhận phòng mà ngày trả phòng hiện tại <= ngày nhận phòng thì tự động đẩy ngày trả lên +1 ngày
+        if (changedByCheckIn === true && (!cOut || cOut <= cIn)) {
+            cOut = minCheckOutStr;
+            checkOutEl.value = cOut;
+        }
+
+        if (!cOut) return;
+
+        // 2. Kiểm tra ngày trả phòng không được trong quá khứ và phải > ngày nhận phòng
+        if (cOut <= cIn || cOut < minCheckOutStr) {
+            helperEl.innerHTML = '<span class="text-danger fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>Ngày trả phòng phải lớn hơn ngày nhận phòng ít nhất 1 ngày và không ở trong quá khứ!</span>';
+            if (stayNightsText) stayNightsText.textContent = 'Ngày trả phải > Ngày nhận';
+            if (submitBtn) submitBtn.disabled = true;
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = false;
+
+        const date1 = new Date(cIn);
+        const date2 = new Date(cOut);
+        const diffTime = date2 - date1;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (stayNightsText) {
+            stayNightsText.textContent = `${diffDays} đêm (từ ${cIn} đến ${cOut})`;
+        }
+        if (checkInHint) {
+            checkInHint.innerHTML = `<i class="bi bi-check2-circle text-success me-1"></i>Quý khách có thể nhận phòng lúc 14:00 ngày <strong>${cIn}</strong> và trả phòng lúc 12:00 ngày <strong>${cOut}</strong>.`;
+        }
+
+        const previousSelectedRoom = roomSelectEl.value;
+        helperEl.innerHTML = '<span class="text-primary"><i class="bi bi-hourglass-split me-1"></i>Đang kiểm tra phòng trống thực tế trong hệ thống...</span>';
 
         fetch(`/rooms/api/available?checkIn=${cIn}&checkOut=${cOut}`)
             .then(res => res.json())
@@ -111,6 +231,9 @@
                         const opt = document.createElement('option');
                         opt.value = r.id;
                         opt.textContent = `Phòng ${r.roomNumber} - ${r.roomType.name} (${Number(r.roomType.pricePerNight).toLocaleString('vi-VN')} đ/đêm)`;
+                        if (String(r.id) === String(previousSelectedRoom)) {
+                            opt.selected = true;
+                        }
                         roomSelectEl.appendChild(opt);
                     });
                 }
@@ -120,8 +243,8 @@
             });
     }
 
-    checkInEl.addEventListener('change', updateAvailableRooms);
-    checkOutEl.addEventListener('change', updateAvailableRooms);
+    checkInEl.addEventListener('change', () => updateAvailableRooms(true));
+    checkOutEl.addEventListener('change', () => updateAvailableRooms(false));
 </script>
 </body>
 </html>

@@ -15,6 +15,11 @@ public class UserDto {
     @NotBlank(message = "Họ và tên không được để trống")
     private String fullName;
 
-    @NotBlank(message = "Vai trò không được để trống")
-    private String role; // ADMIN, STAFF
+    private String email;
+
+    private String phone;
+
+    private String idNumber;
+
+    private String role = "CUSTOMER"; // ADMIN, STAFF, CUSTOMER
 }

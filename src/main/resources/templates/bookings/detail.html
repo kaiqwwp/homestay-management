@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Chi tiết đơn đặt phòng #' + ${booking.id})}"></head>
+<head th:replace="~{fragments/layout :: head('Chi tiết & Lịch sử đơn đặt phòng #' + ${booking.id})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar}"></nav>
 <div th:replace="~{fragments/layout :: alerts}"></div>
@@ -16,51 +16,111 @@
                 <div>
                     <h3 class="fw-bold mb-0">
                         Đơn đặt phòng <span class="text-primary" th:text="'#' + ${booking.id}">#1</span>
-                        <span class="badge ms-2 fs-6 px-3 py-1 rounded-pill"
-                              th:classappend="${booking.status == 'BOOKED' ? 'badge-status-booked' : (booking.status == 'CHECKED_IN' ? 'badge-status-checkedin' : (booking.status == 'CHECKED_OUT' ? 'badge-status-checkedout' : 'badge-status-cancelled'))}"
-                              th:text="${booking.status == 'BOOKED' ? 'Đã đặt (BOOKED)' : (booking.status == 'CHECKED_IN' ? 'Đang ở (CHECKED_IN)' : (booking.status == 'CHECKED_OUT' ? 'Đã trả phòng (CHECKED_OUT)' : 'Đã hủy (CANCELLED)'))}">
-                            Đã đặt
+                        <span th:if="${booking.status == 'PENDING'}" class="badge bg-warning text-dark ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-hourglass-split me-1"></i>Chờ khách sạn xác nhận (PENDING)
+                        </span>
+                        <span th:if="${booking.status == 'BOOKED'}" class="badge badge-status-booked ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-check-circle-fill me-1"></i>Đã chấp nhận - Chờ Check-in (BOOKED)
+                        </span>
+                        <span th:if="${booking.status == 'CHECKED_IN'}" class="badge badge-status-checkedin ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-person-check-fill me-1"></i>Đang lưu trú (CHECKED_IN)
+                        </span>
+                        <span th:if="${booking.status == 'PAID'}" class="badge bg-success text-white ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-credit-card-check me-1"></i>Đã thanh toán (PAID)
+                        </span>
+                        <span th:if="${booking.status == 'CHECKED_OUT'}" class="badge badge-status-checkedout ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-archive-fill me-1"></i>Hoàn tất & Đã trả phòng (CHECKED_OUT)
+                        </span>
+                        <span th:if="${booking.status == 'REJECTED'}" class="badge bg-danger text-white ms-2 fs-6 px-3 py-1 rounded-pill">
+                            <i class="bi bi-x-octagon-fill me-1"></i>Đã từ chối (REJECTED)
+                        </span>
+                        <span th:if="${booking.status == 'CANCELLED'}" class="badge badge-status-cancelled ms-2 fs-6 px-3 py-1 rounded-pill">
+                            Đã hủy (CANCELLED)
                         </span>
                     </h3>
-                    <small class="text-muted" th:text="'Ngày tạo đơn: ' + ${#temporals.format(booking.createdAt, 'dd/MM/yyyy HH:mm')}">26/10/2026</small>
+                    <small class="text-muted" th:text="'Thời điểm đặt phòng: ' + ${#temporals.format(booking.createdAt, 'HH:mm:ss dd/MM/yyyy')}">04/11/2026</small>
                 </div>
             </div>
 
             <!-- Action buttons at header -->
-            <div class="d-flex gap-2 mt-2 mt-md-0">
-                <!-- Nút Check-in khi BOOKED -->
-                <form th:if="${booking.status == 'BOOKED'}" th:action="@{/bookings/{id}/check-in(id=${booking.id})}" method="post">
-                    <button type="submit" class="btn btn-success rounded-pill px-4">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Nhận phòng (Check-in)
+            <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
+                <!-- Bước 1: Duyệt đơn khi đang PENDING (Chỉ dành cho Admin / Staff) -->
+                <form th:if="${booking.status == 'PENDING' and isStaffOrAdmin}" th:action="@{/bookings/{id}/approve(id=${booking.id})}" method="post">
+                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-check-circle me-1"></i> Chấp nhận yêu cầu đặt phòng
                     </button>
                 </form>
 
-                <!-- Nút Hủy khi BOOKED -->
-                <form th:if="${booking.status == 'BOOKED'}" th:action="@{/bookings/{id}/cancel(id=${booking.id})}" method="post"
-                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn đặt phòng này?');">
+                <button th:if="${booking.status == 'PENDING' and isStaffOrAdmin}" type="button"
+                        class="btn btn-danger rounded-pill px-4 fw-semibold"
+                        data-bs-toggle="modal" data-bs-target="#rejectDetailModal">
+                    <i class="bi bi-x-octagon me-1"></i> Từ chối & Tặng mã đền bù
+                </button>
+
+                <!-- Bước 2: Đến ngày Check-in -> Confirm Checked-in (Chỉ dành cho Admin / Staff khi BOOKED) -->
+                <form th:if="${booking.status == 'BOOKED' and isStaffOrAdmin}" th:action="@{/bookings/{id}/check-in(id=${booking.id})}" method="post"
+                      onsubmit="return confirm('Xác nhận khách đã nhận phòng (Checked-in)? Sau bước này chức năng Thanh toán sẽ được mở khóa.');">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Xác nhận Checked-in (Nhận phòng)
+                    </button>
+                </form>
+
+                <!-- Bước 4: Giải phóng phòng về Trống khi đã PAID -->
+                <form th:if="${booking.status == 'PAID' and isStaffOrAdmin}" th:action="@{/bookings/{id}/release-room(id=${booking.id})}" method="post"
+                      onsubmit="return confirm('Xác nhận hoàn tất lưu trú và giải phóng phòng này về trạng thái TRỐNG?');">
+                    <button type="submit" class="btn btn-outline-success rounded-pill px-4 fw-semibold">
+                        <i class="bi bi-door-open me-1"></i> Giải phóng phòng về Trống
+                    </button>
+                </form>
+
+                <!-- Nút Hủy khi PENDING (dành cho khách hàng) -->
+                <form th:if="${booking.status == 'PENDING' and isCustomer}" th:action="@{/bookings/{id}/cancel(id=${booking.id})}" method="post"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn hủy yêu cầu đặt phòng này?');">
                     <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
-                        <i class="bi bi-x-circle me-1"></i> Hủy đơn
+                        <i class="bi bi-x-circle me-1"></i> Hủy yêu cầu
                     </button>
                 </form>
 
-                <!-- Xem hóa đơn nếu đã checkout -->
-                <a th:if="${invoice != null}" th:href="@{/invoices/{id}(id=${invoice.id})}" class="btn btn-outline-primary rounded-pill px-3">
+                <!-- Xem hóa đơn nếu đã thanh toán -->
+                <a th:if="${invoice != null and isStaffOrAdmin}" th:href="@{/invoices/{id}(id=${invoice.id})}" class="btn btn-outline-primary rounded-pill px-3">
                     <i class="bi bi-receipt me-1"></i> Xem hóa đơn #<span th:text="${invoice.id}">1</span>
                 </a>
-                <a th:if="${invoice != null}" th:href="@{/reports/invoices/{id}.pdf(id=${invoice.id})}" target="_blank" class="btn btn-danger rounded-pill px-3">
+                <a th:if="${invoice != null and isAdmin}" th:href="@{/reports/invoices/{id}.pdf(id=${invoice.id})}" target="_blank" class="btn btn-danger rounded-pill px-3">
                     <i class="bi bi-file-pdf me-1"></i> Xuất hóa đơn PDF
                 </a>
             </div>
         </div>
 
+        <!-- Thông báo nổi bật cho Khách hàng & Hệ thống khi đơn được Chấp nhận hoặc Từ chối -->
+        <div th:if="${booking.status == 'BOOKED'}" class="alert alert-success border-start border-4 border-success shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Đặt phòng thành công!</strong> Khách sạn đã chấp nhận yêu cầu đặt <strong th:text="'Phòng ' + ${booking.room.roomNumber}"></strong>.
+            Quý khách vui lòng đến nhận phòng từ <strong>14:00 ngày <span th:text="${#temporals.format(booking.checkIn, 'dd/MM/yyyy')}"></span></strong>.
+        </div>
+
+        <div th:if="${booking.status == 'REJECTED'}" class="alert alert-danger border-start border-4 border-danger shadow-sm mb-4">
+            <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Thông báo từ chối yêu cầu đặt phòng & Đền bù mã giảm giá</h6>
+            <p class="mb-2 small">
+                Lý do từ khách sạn: <strong th:text="${booking.rejectReason}">Phòng đang bảo trì đột xuất</strong>
+            </p>
+            <div th:if="${booking.compensationCode != null}" class="p-2 bg-white rounded border border-danger d-inline-block text-dark small">
+                🎁 Mã giảm giá đền bù dành tặng quý khách:
+                <span class="badge bg-danger fs-6 mx-1" th:text="${booking.compensationCode}">DENBU10</span>
+                (Giảm <strong th:text="${booking.compensationDiscount} + '%'">10%</strong> cho đơn đặt phòng tiếp theo)
+                <a th:if="${!booking.compensationUsed and isCustomer}" th:href="@{/bookings/new(voucherCode=${booking.compensationCode})}"
+                   class="btn btn-sm btn-primary rounded-pill ms-2 py-0 px-3">Dùng mã đặt phòng ngay</a>
+                <span th:if="${booking.compensationUsed}" class="badge bg-secondary ms-2">Đã sử dụng</span>
+            </div>
+        </div>
+
         <div class="row g-4">
-            <!-- Left Column: Customer & Room Info -->
+            <!-- Left Column: Customer, Room, Timeline History & Cost Summary -->
             <div class="col-12 col-lg-5">
                 <!-- Customer Card -->
                 <div class="card card-custom p-4 mb-4 shadow-sm">
                     <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-person-circle text-primary me-2"></i>Thông tin Khách hàng</h5>
                     <ul class="list-unstyled mb-0">
-                        <li class="mb-2"><strong>Họ và tên:</strong> <span class="ms-1" th:text="${booking.customer.fullName}">Nguyễn Văn A</span></li>
+                        <li class="mb-2"><strong>Họ và tên:</strong> <span class="ms-1 fw-semibold" th:text="${booking.customer.fullName}">Nguyễn Văn A</span></li>
                         <li class="mb-2"><strong>Số điện thoại:</strong> <span class="ms-1" th:text="${booking.customer.phone}">0900000001</span></li>
                         <li class="mb-2"><strong>Email:</strong> <span class="ms-1 text-muted" th:text="${booking.customer.email != null ? booking.customer.email : 'Chưa có'}">email</span></li>
                         <li class="mb-0"><strong>CCCD/Passport:</strong> <span class="ms-1 badge bg-light text-dark border" th:text="${booking.customer.idNumber != null ? booking.customer.idNumber : 'Chưa có'}">001200000001</span></li>
@@ -81,32 +141,69 @@
                     </div>
                     <ul class="list-unstyled mb-0">
                         <li class="mb-2"><strong>Giá phòng/đêm:</strong> <span class="ms-1 text-success fw-bold" th:text="${#numbers.formatDecimal(booking.room.roomType.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ'">300.000 đ</span></li>
-                        <li class="mb-2"><strong>Ngày nhận (Check-in):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkIn, 'dd/MM/yyyy')}">26/10/2026</span></li>
-                        <li class="mb-2"><strong>Ngày trả (Check-out):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkOut, 'dd/MM/yyyy')}">28/10/2026</span></li>
+                        <li class="mb-2"><strong>Ngày nhận (Check-in):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkIn, 'dd/MM/yyyy')}">04/11/2026</span></li>
+                        <li class="mb-2"><strong>Ngày trả (Check-out):</strong> <span class="ms-1 text-dark fw-bold" th:text="${#temporals.format(booking.checkOut, 'dd/MM/yyyy')}">06/11/2026</span></li>
                         <li class="mb-0"><strong>Ghi chú:</strong> <span class="ms-1 text-muted" th:text="${booking.note != null and !booking.note.isEmpty() ? booking.note : 'Không có'}">Không có</span></li>
+                    </ul>
+                </div>
+
+                <!-- Lịch sử mốc thời gian chi tiết (Lưu ở cả Hệ thống và Khách hàng) -->
+                <div class="card card-custom p-4 mb-4 shadow-sm">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-clock-history text-info me-2"></i>Lịch sử chi tiết đơn đặt phòng</h5>
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span><i class="bi bi-plus-circle text-primary me-2"></i>Tạo yêu cầu đặt phòng:</span>
+                            <strong th:text="${booking.createdAt != null ? #temporals.format(booking.createdAt, 'HH:mm:ss dd/MM/yyyy') : '-'}"></strong>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between" th:if="${booking.approvedAt != null}">
+                            <span><i class="bi bi-check-circle text-success me-2"></i>Khách sạn chấp nhận:</span>
+                            <strong class="text-success" th:text="${#temporals.format(booking.approvedAt, 'HH:mm:ss dd/MM/yyyy')}"></strong>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between" th:if="${booking.rejectedAt != null}">
+                            <span><i class="bi bi-x-octagon text-danger me-2"></i>Khách sạn từ chối:</span>
+                            <strong class="text-danger" th:text="${#temporals.format(booking.rejectedAt, 'HH:mm:ss dd/MM/yyyy')}"></strong>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between" th:if="${booking.checkedInAt != null}">
+                            <span><i class="bi bi-box-arrow-in-right text-info me-2"></i>Xác nhận nhận phòng (Checked-in):</span>
+                            <strong class="text-primary" th:text="${#temporals.format(booking.checkedInAt, 'HH:mm:ss dd/MM/yyyy')}"></strong>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between" th:if="${booking.paidAt != null}">
+                            <span><i class="bi bi-credit-card-check text-success me-2"></i>Hoàn tất thanh toán:</span>
+                            <strong class="text-success" th:text="${#temporals.format(booking.paidAt, 'HH:mm:ss dd/MM/yyyy')}"></strong>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between" th:if="${booking.checkedOutAt != null}">
+                            <span><i class="bi bi-door-open text-secondary me-2"></i>Trả phòng & Giải phóng về Trống:</span>
+                            <strong th:text="${#temporals.format(booking.checkedOutAt, 'HH:mm:ss dd/MM/yyyy')}"></strong>
+                        </li>
                     </ul>
                 </div>
 
                 <!-- Cost Summary Card -->
                 <div class="card card-custom p-4 shadow-sm border-start border-4 border-primary">
-                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-cash-coin text-warning me-2"></i>Bảng kê chi phí tạm tính</h5>
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-cash-coin text-warning me-2"></i>Bảng kê chi phí chi tiết</h5>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Tiền phòng:</span>
+                        <span>Tiền phòng lưu trú:</span>
                         <strong class="text-dark" th:text="${#numbers.formatDecimal(roomTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Tiền dịch vụ phát sinh:</span>
                         <strong class="text-dark" th:text="${#numbers.formatDecimal(serviceTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</strong>
                     </div>
+                    <div class="d-flex justify-content-between mb-2 text-danger" th:if="${booking.discountPercent != null and booking.discountPercent > 0}">
+                        <span>
+                            Giảm giá mã đền bù (<strong th:text="${booking.appliedVoucherCode}"></strong> - <span th:text="${booking.discountPercent} + '%'"></span>):
+                        </span>
+                        <strong th:text="'- ' + ${#numbers.formatDecimal(discountAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">- 60.000 đ</strong>
+                    </div>
                     <hr class="my-2"/>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fs-5 fw-bold text-dark">Tổng cộng:</span>
+                        <span class="fs-5 fw-bold text-dark">Tổng thanh toán:</span>
                         <span class="fs-4 fw-bold text-primary" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Services & Checkout -->
+            <!-- Right Column: Services & Payment / Status -->
             <div class="col-12 col-lg-7">
                 <!-- Services Section -->
                 <div class="card card-custom p-4 mb-4 shadow-sm">
@@ -114,8 +211,8 @@
                         <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cup-straw text-danger me-2"></i>Dịch vụ phát sinh trong thời gian ở</h5>
                     </div>
 
-                    <!-- Add Service Form (Chỉ cho phép khi đang CHECKED_IN) -->
-                    <div th:if="${booking.status == 'CHECKED_IN'}" class="p-3 bg-light rounded-3 mb-3 border">
+                    <!-- Add Service Form (Chỉ cho phép khi đang CHECKED_IN và là Lễ tân/Admin) -->
+                    <div th:if="${booking.status == 'CHECKED_IN' and isStaffOrAdmin}" class="p-3 bg-light rounded-3 mb-3 border">
                         <h6 class="fw-semibold mb-2 text-secondary"><i class="bi bi-plus-circle me-1"></i>Thêm dịch vụ sử dụng</h6>
                         <form th:action="@{/bookings/{bookingId}/services(bookingId=${booking.id})}" th:object="${addServiceDto}" method="post" class="row g-2 align-items-center">
                             <div class="col-12 col-sm-6">
@@ -136,7 +233,7 @@
                         </form>
                     </div>
 
-                    <div th:if="${booking.status != 'CHECKED_IN' and #lists.isEmpty(bookingServices)}" class="text-center py-3 text-muted small">
+                    <div th:if="${#lists.isEmpty(bookingServices)}" class="text-center py-3 text-muted small">
                         Chưa có dịch vụ nào phát sinh.
                     </div>
 
@@ -149,7 +246,7 @@
                                     <th class="text-center">Số lượng</th>
                                     <th class="text-end">Đơn giá lúc dùng</th>
                                     <th class="text-end">Thành tiền</th>
-                                    <th class="text-center" th:if="${booking.status == 'CHECKED_IN'}">Xóa</th>
+                                    <th class="text-center" th:if="${booking.status == 'CHECKED_IN' and isStaffOrAdmin}">Xóa</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -158,7 +255,7 @@
                                     <td class="text-center" th:text="${bs.quantity} + ' ' + ${bs.service.unit}">2 suất</td>
                                     <td class="text-end" th:text="${#numbers.formatDecimal(bs.unitPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">50.000 đ</td>
                                     <td class="text-end fw-bold text-dark" th:text="${#numbers.formatDecimal(bs.unitPrice * bs.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">100.000 đ</td>
-                                    <td class="text-center" th:if="${booking.status == 'CHECKED_IN'}">
+                                    <td class="text-center" th:if="${booking.status == 'CHECKED_IN' and isStaffOrAdmin}">
                                         <form th:action="@{/bookings/services/{id}/delete(id=${bs.id}, bookingId=${booking.id})}" method="post"
                                               onsubmit="return confirm('Bạn có chắc muốn xóa dịch vụ này?');">
                                             <button type="submit" class="btn btn-link text-danger p-0" title="Xóa dịch vụ">
@@ -172,41 +269,286 @@
                     </div>
                 </div>
 
-                <!-- Checkout & Invoicing Box (Khi CHECKED_IN) -->
-                <div th:if="${booking.status == 'CHECKED_IN'}" class="card card-custom p-4 shadow-sm border-success border-2">
-                    <h5 class="fw-bold mb-3 text-success"><i class="bi bi-check2-circle me-2"></i>Trả phòng & Thanh toán hóa đơn</h5>
-                    <p class="text-muted small mb-3">Xác nhận thanh toán toàn bộ chi phí lưu trú và chuyển trạng thái phòng về <strong>AVAILABLE (Sẵn sàng)</strong>.</p>
-                    
-                    <form th:action="@{/invoices/checkout}" method="post">
-                        <input type="hidden" name="bookingId" th:value="${booking.id}"/>
+                <!-- Trạng thái khóa Thanh toán khi chưa Checked-in -->
+                <div th:if="${(booking.status == 'PENDING' or booking.status == 'BOOKED')}"
+                     class="card card-custom p-4 shadow-sm border-warning border-2 bg-light">
+                    <h5 class="fw-bold mb-2 text-secondary"><i class="bi bi-lock-fill text-warning me-2"></i>Chức năng Thanh toán đang khóa</h5>
+                    <p class="text-muted small mb-0" th:if="${isStaffOrAdmin}">
+                        Vui lòng <strong>Chấp nhận đơn</strong> và bấm <strong>Xác nhận Checked-in (Nhận phòng)</strong> khi khách đến nhận phòng để mở khóa chức năng Thanh toán.
+                    </p>
+                    <p class="text-muted small mb-0" th:if="${isCustomer}">
+                        Chức năng Thanh toán Online (QR SePay MB Bank) hoặc Tiền mặt sẽ tự động mở khóa ngay sau khi Quý khách đến nhận phòng và được Quản lý xác nhận <strong>Checked-in</strong>.
+                    </p>
+                </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Hình thức thanh toán</label>
-                            <select name="paymentMethod" class="form-select">
-                                <option value="Tiền mặt">Tiền mặt</option>
-                                <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
-                                <option value="Thẻ tín dụng / Ghi nợ">Thẻ tín dụng / Ghi nợ</option>
-                                <option value="Ví điện tử (Momo / ZaloPay)">Ví điện tử (Momo / ZaloPay)</option>
-                            </select>
+                <!-- KHÁCH HÀNG: Tự chọn Thanh toán Online (QR SePay MB Bank) hoặc Tiền mặt tại quầy (Mở khóa khi CHECKED_IN) -->
+                <div id="paymentSection" th:if="${booking.status == 'CHECKED_IN' and isCustomer and invoice == null}"
+                     class="card card-custom p-4 shadow-sm border-primary border-2 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-wallet2 me-2"></i>Chọn phương thức thanh toán
+                        </h5>
+                        <span class="badge bg-primary rounded-pill px-3 py-1">Tổng: <span th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span></span>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Quý khách có thể quét mã <strong>QR SePay (MB Bank)</strong> để hệ thống tự động chuyển trạng thái <strong>Đã thanh toán</strong>, hoặc chọn <strong>Tiền mặt</strong> để Admin xác nhận tại quầy.
+                    </p>
+
+                    <!-- Tabs chọn Online QR SePay vs Tiền mặt -->
+                    <ul class="nav nav-pills nav-fill mb-3 bg-light p-1 rounded-pill border" id="customerPaymentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill fw-semibold small py-2" id="tab-qr-btn"
+                                    data-bs-toggle="pill" data-bs-target="#pane-qr-sepay" type="button" role="tab">
+                                <i class="bi bi-qr-code-scan me-1"></i>Thanh toán Online (QR SePay MB Bank)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill fw-semibold small py-2" id="tab-cash-btn"
+                                    data-bs-toggle="pill" data-bs-target="#pane-cash" type="button" role="tab">
+                                <i class="bi bi-cash-stack me-1"></i>Thanh toán Tiền mặt tại quầy
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- TAB 1: QR SEPAY MB BANK -->
+                        <div class="tab-pane fade show active" id="pane-qr-sepay" role="tabpanel">
+                            <div class="row g-3 align-items-center p-3 rounded-3 bg-light border">
+                                <div class="col-12 col-md-5 text-center">
+                                    <div class="bg-white p-2 rounded-3 shadow-sm d-inline-block border">
+                                        <img th:src="${sepayQrUrl}" alt="QR SePay MB Bank" class="img-fluid rounded" style="max-width: 220px;"/>
+                                    </div>
+                                    <div class="small text-muted mt-2">
+                                        <i class="bi bi-phone me-1"></i>Mở App Ngân hàng bất kỳ để quét mã VietQR
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-7">
+                                    <div class="p-3 bg-white rounded-3 border mb-3">
+                                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                                            <span class="text-muted">Ngân hàng thụ hưởng:</span>
+                                            <strong class="text-primary" th:text="${sepayBankName}">MBBank</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                                            <span class="text-muted">Số tài khoản:</span>
+                                            <strong class="text-dark font-monospace" th:text="${sepayBankAccount}">0123456789</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                                            <span class="text-muted">Chủ tài khoản:</span>
+                                            <strong class="text-dark" th:text="${sepayAccountName}">HOMESTAY PRO</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1 border-bottom small">
+                                            <span class="text-muted">Số tiền thanh toán:</span>
+                                            <strong class="text-danger fs-6" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">500,000 đ</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center pt-2 small">
+                                            <span class="text-muted">Nội dung CK (bắt buộc):</span>
+                                            <span class="badge bg-warning text-dark fs-6 font-monospace px-2 py-1" th:text="${sepayTransferContent}">HOMESTAY4</span>
+                                        </div>
+                                    </div>
+
+                                    <div id="sepayPollingBox" class="alert alert-info py-2 px-3 small mb-2 d-flex align-items-center">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                        <span id="sepayPollingText">Đang chờ quét mã QR... Hệ thống sẽ tự động cập nhật sang <strong>Đã thanh toán</strong> ngay khi nhận được chuyển khoản.</span>
+                                    </div>
+
+                                    <button type="button" id="btnCheckSepayNow" class="btn btn-primary w-100 rounded-pill fw-semibold btn-sm py-2"
+                                            onclick="checkSepayPaymentNow()">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Tôi đã chuyển khoản - Kiểm tra giao dịch ngay
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center p-3 bg-success bg-opacity-10 rounded-3 mb-3">
-                            <span class="fw-bold text-success">Tổng số tiền cần thanh toán:</span>
+                        <!-- TAB 2: TIỀN MẶT TẠI QUẦY (ADMIN CONFIRM) -->
+                        <div class="tab-pane fade" id="pane-cash" role="tabpanel">
+                            <div class="p-3 rounded-3 bg-light border text-center">
+                                <i class="bi bi-cash-coin text-success fs-1 mb-2 d-block"></i>
+                                <h6 class="fw-bold text-dark">Thanh toán Tiền mặt trực tiếp</h6>
+                                <p class="text-muted small mb-3">
+                                    Vui lòng thanh toán số tiền <strong class="text-danger" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'"></strong> tại quầy lễ tân.
+                                    Sau khi thu tiền, <strong>Admin / Quản lý</strong> sẽ bấm xác nhận trên giao diện hệ thống và trạng thái đơn của bạn sẽ chuyển sang <strong>Đã thanh toán</strong> ngay lập tức.
+                                </p>
+                                <div id="cashRequestStatus" class="d-none alert alert-success py-2 small mb-3"></div>
+                                <button type="button" id="btnRequestCash" class="btn btn-success rounded-pill px-4 fw-semibold"
+                                        onclick="sendCashPaymentRequest()">
+                                    <i class="bi bi-bell-fill me-1"></i>Gửi thông báo thanh toán Tiền mặt cho Admin
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN / STAFF: Xác nhận thanh toán Tiền mặt hoặc xem QR SePay (Chỉ mở khóa sau khi đã CHECKED_IN) -->
+                <div id="paymentSectionAdmin" th:if="${booking.status == 'CHECKED_IN' and isStaffOrAdmin and invoice == null}"
+                     class="card card-custom p-4 shadow-sm border-success border-2 mb-4">
+                    <h5 class="fw-bold mb-2 text-success"><i class="bi bi-credit-card-2-front-fill me-2"></i>Xác nhận Thanh toán (Dành cho Admin / Lễ tân)</h5>
+                    <p class="text-muted small mb-3">
+                        Nếu khách hàng thanh toán <strong>Online qua QR SePay MB Bank</strong>, hệ thống sẽ tự động chuyển sang <strong>Đã thanh toán</strong>.
+                        Nếu khách thanh toán <strong>Tiền mặt</strong>, Admin bấm nút xác nhận bên dưới:
+                    </p>
+
+                    <!-- Nút Confirm Tiền mặt nhanh 1 chạm cho Admin -->
+                    <form th:action="@{/invoices/checkout}" method="post" class="mb-3">
+                        <input type="hidden" name="bookingId" th:value="${booking.id}"/>
+                        <input type="hidden" name="paymentMethod" value="Tiền mặt"/>
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-success bg-opacity-10 rounded-3 mb-3 border border-success">
+                            <div>
+                                <span class="fw-bold text-success d-block">Tổng số tiền thực thu:</span>
+                                <small class="text-muted">Khách trả tiền mặt tại quầy</small>
+                            </div>
                             <span class="fs-4 fw-bold text-success" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">600.000 đ</span>
                         </div>
-
-                        <button type="submit" class="btn btn-success w-100 py-2 rounded-pill fw-bold"
-                                onclick="return confirm('Xác nhận hoàn tất trả phòng và thanh toán hóa đơn này?');">
-                            <i class="bi bi-credit-card me-1"></i> Xác nhận thanh toán & Trả phòng
+                        <button type="submit" class="btn btn-success w-100 py-2 rounded-pill fw-bold shadow-sm"
+                                onclick="return confirm('Xác nhận đã thu đủ TIỀN MẶT và chuyển đơn sang trạng thái Đã thanh toán?');">
+                            <i class="bi bi-cash-coin me-1"></i> Xác nhận Khách đã thanh toán Tiền mặt
                         </button>
                     </form>
+
+                    <!-- Hiển thị mã QR SePay MB Bank cho Admin đưa khách quét nếu cần -->
+                    <div class="accordion" id="adminQrAccordion">
+                        <div class="accordion-item border rounded-3 overflow-hidden">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2 small fw-semibold bg-light" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#collapseAdminQr">
+                                    <i class="bi bi-qr-code me-2 text-primary"></i>Hiển thị mã QR SePay (MB Bank) hoặc phương thức khác
+                                </button>
+                            </h2>
+                            <div id="collapseAdminQr" class="accordion-collapse collapse" data-bs-parent="#adminQrAccordion">
+                                <div class="accordion-body">
+                                    <div class="row align-items-center g-3 mb-3">
+                                        <div class="col-sm-5 text-center">
+                                            <img th:src="${sepayQrUrl}" alt="QR SePay" class="img-fluid rounded border p-1" style="max-width: 160px;"/>
+                                        </div>
+                                        <div class="col-sm-7 small">
+                                            <div><strong>Ngân hàng:</strong> <span th:text="${sepayBankName}">MBBank</span></div>
+                                            <div><strong>Số TK:</strong> <span th:text="${sepayBankAccount}"></span></div>
+                                            <div><strong>Chủ TK:</strong> <span th:text="${sepayAccountName}"></span></div>
+                                            <div><strong>Nội dung CK:</strong> <code class="fw-bold text-danger" th:text="${sepayTransferContent}"></code></div>
+                                        </div>
+                                    </div>
+                                    <form th:action="@{/invoices/checkout}" method="post" class="d-flex gap-2">
+                                        <input type="hidden" name="bookingId" th:value="${booking.id}"/>
+                                        <select name="paymentMethod" class="form-select form-select-sm">
+                                            <option value="QR SePay (MB Bank)">Chuyển khoản QR SePay (MB Bank)</option>
+                                            <option value="Thẻ tín dụng / Ghi nợ">Thẻ tín dụng / Ghi nợ</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill text-nowrap px-3"
+                                                onclick="return confirm('Xác nhận khách đã chuyển khoản thành công?');">
+                                            Xác nhận thủ công
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thông tin Hóa đơn đã thanh toán (Hiển thị cho cả Hệ thống và Khách hàng trong lịch sử) -->
+                <div th:if="${invoice != null}" class="card card-custom p-4 shadow-sm border-success border-2">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-success">
+                            <i class="bi bi-patch-check-fill me-2"></i>Chứng từ Thanh toán (Hóa đơn #<span th:text="${invoice.id}">1</span>)
+                        </h5>
+                        <span class="badge bg-success px-3 py-1 rounded-pill">ĐÃ THANH TOÁN</span>
+                    </div>
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-2"><strong>Phương thức thanh toán:</strong> <span th:text="${invoice.paymentMethod}">Tiền mặt</span></li>
+                        <li class="mb-2"><strong>Thời gian thanh toán:</strong> <span th:text="${#temporals.format(invoice.paidAt, 'HH:mm:ss dd/MM/yyyy')}"></span></li>
+                        <li class="mb-2" th:if="${invoice.discountAmount != null and invoice.discountAmount > 0}">
+                            <strong>Số tiền giảm giá (Mã đền bù):</strong>
+                            <span class="text-danger fw-bold" th:text="'- ' + ${#numbers.formatDecimal(invoice.discountAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+                        </li>
+                        <li class="mb-0"><strong>Tổng tiền đã thanh toán:</strong> <span class="text-success fw-bold fs-6" th:text="${#numbers.formatDecimal(invoice.total, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span></li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal Từ chối & Đền bù tại trang Chi tiết -->
+<div th:if="${booking.status == 'PENDING' and isStaffOrAdmin}" class="modal fade" id="rejectDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form th:action="@{/bookings/{id}/reject(id=${booking.id})}" method="post">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title fw-bold">
+                        <i class="bi bi-exclamation-octagon me-1"></i>Từ chối yêu cầu đặt phòng #<span th:text="${booking.id}"></span>
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Lý do từ chối thông báo cho khách hàng <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control" rows="2" required>Phòng đang gặp sự cố kỹ thuật đột xuất cần bảo trì</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">Mức mã giảm giá đền bù (5% - 10%) <span class="text-danger">*</span></label>
+                        <select name="discountPercent" class="form-select">
+                            <option value="5">Mã giảm giá 5%</option>
+                            <option value="7">Mã giảm giá 7%</option>
+                            <option value="10" selected>Mã giảm giá 10%</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4">
+                        <i class="bi bi-send-fill me-1"></i>Xác nhận Từ chối & Gửi mã đền bù
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script th:if="${booking.status == 'CHECKED_IN' and invoice == null}" th:inline="javascript">
+    const currentBookingId = /*[[${booking.id}]]*/ 0;
+
+    function checkSepayPaymentNow(isAutoPoll) {
+        const textEl = document.getElementById('sepayPollingText');
+        const boxEl = document.getElementById('sepayPollingBox');
+        if (!isAutoPoll && textEl) {
+            textEl.innerHTML = 'Đang kiểm tra giao dịch chuyển khoản MB Bank trên SePay...';
+        }
+        fetch('/api/payment/status/' + currentBookingId)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.paid) {
+                    if (boxEl) {
+                        boxEl.className = 'alert alert-success py-2 px-3 small mb-2';
+                        boxEl.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i><strong>Thanh toán thành công!</strong> Đang cập nhật trạng thái Đã thanh toán...';
+                    }
+                    setTimeout(() => window.location.reload(), 800);
+                } else if (!isAutoPoll && textEl) {
+                    textEl.innerHTML = 'Chưa ghi nhận giao dịch khớp nội dung. Hệ thống vẫn đang tự động kiểm tra mỗi 3 giây...';
+                }
+            })
+            .catch(() => {});
+    }
+
+    function sendCashPaymentRequest() {
+        const btn = document.getElementById('btnRequestCash');
+        const statusEl = document.getElementById('cashRequestStatus');
+        if (btn) btn.disabled = true;
+        fetch('/api/payment/request-cash/' + currentBookingId, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (statusEl) {
+                    statusEl.textContent = data.message || 'Đã gửi thông báo thanh toán tiền mặt cho Admin!';
+                    statusEl.classList.remove('d-none');
+                }
+            })
+            .catch(() => {
+                if (btn) btn.disabled = false;
+            });
+    }
+
+    // Tự động kiểm tra trạng thái thanh toán mỗi 3 giây (cả khi khách quét QR SePay hoặc khi Admin bấm xác nhận Tiền mặt)
+    setInterval(() => checkSepayPaymentNow(true), 3000);
+</script>
 </body>
 </html>

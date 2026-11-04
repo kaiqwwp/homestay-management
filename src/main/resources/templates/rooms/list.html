@@ -14,13 +14,13 @@
                 <p class="text-muted small mb-0">Quản lý sơ đồ phòng, tình trạng sẵn sàng và giá niêm yết</p>
             </div>
             <div class="d-flex gap-2">
-                <a th:href="@{/reports/rooms.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
+                <a th:if="${isAdmin}" th:href="@{/reports/rooms.pdf}" target="_blank" class="btn btn-outline-danger rounded-pill">
                     <i class="bi bi-file-pdf me-1"></i> Báo cáo danh sách
                 </a>
-                <a th:href="@{/reports/occupancy.pdf}" target="_blank" class="btn btn-outline-warning text-dark rounded-pill">
+                <a th:if="${isAdmin}" th:href="@{/reports/occupancy.pdf}" target="_blank" class="btn btn-outline-warning text-dark rounded-pill">
                     <i class="bi bi-graph-up me-1"></i> Báo cáo công suất
                 </a>
-                <a th:href="@{/rooms/new}" class="btn btn-primary rounded-pill">
+                <a th:if="${isStaffOrAdmin}" th:href="@{/rooms/new}" class="btn btn-primary rounded-pill">
                     <i class="bi bi-plus-circle me-1"></i> Thêm phòng mới
                 </a>
             </div>
@@ -62,15 +62,16 @@
 
         <!-- Rooms Grid -->
         <div class="row g-3 mb-4">
-            <div class="col-12 col-sm-6 col-md-4 col-xl-3" th:each="room : ${roomPage.content}">
+            <div class="col-12 col-sm-6 col-md-4 col-xl-3" th:each="room : ${roomPage.content}" th:id="'room-card-' + ${room.id}">
                 <div class="card card-custom h-100 overflow-hidden shadow-sm d-flex flex-column">
                     <div class="position-relative" style="height: 170px; background: #e2e8f0;">
                         <img th:src="${room.imageUrl != null ? room.imageUrl : '/images/room-default.svg'}"
                              class="w-100 h-100 object-fit-cover" alt="Ảnh phòng"
                              onerror="this.src='/images/room-default.svg'"/>
-                        <span class="position-absolute top-0 end-0 m-2 badge rounded-pill px-3 py-1 shadow-sm"
-                              th:classappend="${room.status == 'AVAILABLE' ? 'badge-status-available' : (room.status == 'OCCUPIED' ? 'badge-status-occupied' : 'badge-status-maintenance')}"
-                              th:text="${room.status == 'AVAILABLE' ? 'Trống' : (room.status == 'OCCUPIED' ? 'Đang ở' : 'Bảo trì')}">
+                        <span th:id="'room-badge-' + ${room.id}"
+                              class="position-absolute top-0 end-0 m-2 badge rounded-pill px-3 py-1 shadow-sm"
+                              th:classappend="${room.status == 'AVAILABLE' ? 'badge-status-available' : (room.currentBookingPaid ? 'bg-primary text-white' : (room.status == 'OCCUPIED' ? 'badge-status-occupied' : 'badge-status-maintenance'))}"
+                              th:text="${room.status == 'AVAILABLE' ? 'Trống' : (room.currentBookingPaid ? 'Đã thanh toán' : (room.status == 'OCCUPIED' ? 'Đang ở' : 'Bảo trì'))}">
                             Trống
                         </span>
                     </div>
@@ -78,24 +79,75 @@
                         <div>
                             <div class="d-flex justify-content-between align-items-baseline mb-1">
                                 <h5 class="fw-bold mb-0 text-dark" th:text="'Phòng ' + ${room.roomNumber}">Phòng 101</h5>
-                                <span class="fw-bold text-success" th:text="${#numbers.formatDecimal(room.roomType.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ/đêm'">500.000 đ</span>
+                                <span class="fw-bold text-success" th:text="${#numbers.formatDecimal(room.pricePerNight, 0, 'COMMA', 0, 'POINT')} + ' đ/đêm'">500.000 đ</span>
                             </div>
                             <p class="text-muted small mb-2">
                                 <i class="bi bi-tag-fill text-secondary me-1"></i>
-                                <span th:text="${room.roomType.name}">Phòng đôi</span>
-                                <span class="ms-2"><i class="bi bi-people-fill text-secondary me-1"></i><span th:text="${room.roomType.capacity} + ' người'">2 người</span></span>
+                                <span th:text="${room.roomTypeName}">Phòng đôi</span>
+                                <span class="ms-2"><i class="bi bi-people-fill text-secondary me-1"></i><span th:text="${room.capacity} + ' người'">2 người</span></span>
                             </p>
+
+                            <!-- Thông tin thời gian thực tế khách ở & thời điểm nhận phòng -->
+                            <div th:id="'room-info-' + ${room.id}" class="mb-2 p-2 rounded-3 bg-light border small">
+                                <div th:if="${room.status == 'OCCUPIED'}">
+                                    <!-- Lễ tân & Admin được xem tên khách đang lưu trú và trạng thái thanh toán -->
+                                    <div th:if="${isStaffOrAdmin}" class="fw-semibold" th:classappend="${room.currentBookingPaid ? 'text-primary' : 'text-danger'}">
+                                        <i class="bi bi-person-fill-lock me-1"></i>Đang có khách: <span th:text="${room.currentGuestName != null ? room.currentGuestName : 'Khách lưu trú'}">Khách A</span>
+                                        <span th:if="${room.currentBookingPaid}" class="badge bg-success ms-1">Đã thanh toán</span>
+                                    </div>
+                                    <!-- Khách hàng chỉ được xem trạng thái phòng đang có người ở, tuyệt đối bảo mật tên khách -->
+                                    <div th:if="${!isStaffOrAdmin}" class="text-danger fw-semibold">
+                                        <i class="bi bi-door-closed-fill me-1"></i>Phòng đang có khách lưu trú
+                                    </div>
+                                    <div class="text-primary small mt-1" th:if="${room.nextAvailableDate != null}">
+                                        <i class="bi bi-calendar-check me-1"></i>Phòng trống từ ngày: <strong th:text="${#temporals.format(room.nextAvailableDate, 'dd/MM/yyyy')}">06/11/2026</strong>
+                                    </div>
+                                </div>
+                                <div th:if="${room.status == 'AVAILABLE'}">
+                                    <div class="text-success fw-semibold">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Phòng đang trống hôm nay
+                                    </div>
+                                    <div class="text-muted small">
+                                        Có thể nhận phòng từ: <strong th:text="${#temporals.format(room.nextAvailableDate, 'dd/MM/yyyy')}">Hôm nay</strong>
+                                    </div>
+                                </div>
+                                <div th:if="${room.status == 'MAINTENANCE'}">
+                                    <div class="text-warning fw-semibold">
+                                        <i class="bi bi-tools me-1"></i>Phòng đang bảo trì thiết bị
+                                    </div>
+                                    <div class="text-muted small">
+                                        Tạm ngưng nhận đặt phòng
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
-                            <a th:href="@{/rooms/{id}/edit(id=${room.id})}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                <i class="bi bi-pencil me-1"></i> Chỉnh sửa
+                            <!-- Nút đặt phòng nhanh (ẩn/khóa nếu đang bảo trì) -->
+                            <a th:if="${room.status != 'MAINTENANCE'}"
+                               th:href="@{/bookings/new(checkIn=${room.nextAvailableDate}, roomId=${room.id})}"
+                               class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                <i class="bi bi-calendar-plus me-1"></i> Đặt phòng
                             </a>
-                            <form th:action="@{/rooms/{id}/delete(id=${room.id})}" method="post"
-                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng này?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <button th:if="${room.status == 'MAINTENANCE'}" type="button"
+                                    class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled>
+                                <i class="bi bi-slash-circle me-1"></i> Đang bảo trì
+                            </button>
+
+                            <div th:if="${isStaffOrAdmin}" class="d-flex gap-1">
+                                <!-- Nút trả phòng nhanh nếu phòng đang có khách -->
+                                <a th:if="${room.activeBookingId != null}" th:href="@{/bookings/{id}(id=${room.activeBookingId})}" class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Xem chi tiết & Trả phòng">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                <a th:href="@{/rooms/{id}/edit(id=${room.id})}" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Chỉnh sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/rooms/{id}/delete(id=${room.id})}" method="post"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng này?');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

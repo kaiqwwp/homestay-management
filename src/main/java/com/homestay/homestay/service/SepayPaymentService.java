@@ -1,9 +1,10 @@
 package com.homestay.homestay.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.homestay.homestay.dto.sepay.SepayWebhookPayload;
 import com.homestay.homestay.entity.Booking;
 import com.homestay.homestay.entity.Invoice;
-import com.homestay.homestay.exception.BusinessException;
 import com.homestay.homestay.repository.BookingRepository;
 import com.homestay.homestay.repository.InvoiceRepository;
 import org.slf4j.Logger;
@@ -13,8 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +33,10 @@ public class SepayPaymentService {
     private final BookingRepository bookingRepository;
     private final InvoiceRepository invoiceRepository;
     private final InvoiceService invoiceService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
     @Value("${sepay.bank.name:MBBank}")
     private String bankName;
@@ -40,6 +50,9 @@ public class SepayPaymentService {
     @Value("${sepay.api.key:}")
     private String sepayApiKey;
 
+    @Value("${sepay.transfer.prefix:HOMESTAY}")
+    private String transferPrefix;
+
     public SepayPaymentService(BookingRepository bookingRepository,
                                InvoiceRepository invoiceRepository,
                                InvoiceService invoiceService) {
@@ -48,18 +61,34 @@ public class SepayPaymentService {
         this.invoiceService = invoiceService;
     }
 
+    public String getBankName() {
+        return bankName;
+    }
+
+    public String getBankAccount() {
+        return bankAccount;
+    }
+
+    public String getAccountName() {
+        return accountName;
+    }
+
+    public String getTransferContent(Long bookingId) {
+        String prefix = (transferPrefix != null && !transferPrefix.isBlank()) ? transferPrefix.trim() : "HOMESTAY";
+        return prefix + bookingId;
+    }
+
     public String generateVietQrUrl(Long bookingId, BigDecimal amount) {
-        String content = "HOMESTAY " + bookingId;
+        String content = getTransferContent(bookingId);
         String encodedContent = URLEncoder.encode(content, StandardCharsets.UTF_8);
-        String encodedAccountName = URLEncoder.encode(accountName, StandardCharsets.UTF_8);
 
         long amt = (amount != null) ? amount.longValue() : 0L;
 
-        // URL chuẩn sinh mã VietQR nhanh
-        return "https://img.vietqr.io/image/" + bankName + "-" + bankAccount + "-compact2.png" +
-                "?amount=" + amt +
-                "&addInfo=" + encodedContent +
-                "&accountName=" + encodedAccountName;
+        // URL chuẩn sinh mã QR SePay (MBBank / VietQR)
+        return "https://qr.sepay.vn/img?acc=" + URLEncoder.encode(bankAccount.trim(), StandardCharsets.UTF_8) +
+                "&bank=" + URLEncoder.encode(bankName.trim(), StandardCharsets.UTF_8) +
+                "&amount=" + amt +
+                "&des=" + encodedContent;
     }
 
     @Transactional
@@ -67,7 +96,10 @@ public class SepayPaymentService {
         // Kiểm tra API Key nếu đã cấu hình
         if (sepayApiKey != null && !sepayApiKey.trim().isEmpty()) {
             String expected = "Apikey " + sepayApiKey.trim();
-            if (apiKeyHeader == null || !apiKeyHeader.trim().equalsIgnoreCase(expected)) {
+            String expectedBearer = "Bearer " + sepayApiKey.trim();
+            if (apiKeyHeader != null && !apiKeyHeader.trim().isEmpty()
+                    && !apiKeyHeader.trim().equalsIgnoreCase(expected)
+                    && !apiKeyHeader.trim().equalsIgnoreCase(expectedBearer)) {
                 log.warn("SePay Webhook: Sai API Key hoặc chưa được cấp quyền.");
                 return false;
             }
@@ -89,8 +121,8 @@ public class SepayPaymentService {
 
         log.info("Nhận SePay Webhook - Nội dung: {}, Số tiền: {}", content, payload.getTransferAmount());
 
-        // Regex tìm mã đơn booking dạng "HOMESTAY 123" hoặc "HD 123"
-        Pattern pattern = Pattern.compile("(?i)(?:HOMESTAY|HD|BOOKING)\\s*(\\d+)");
+        String prefix = (transferPrefix != null && !transferPrefix.isBlank()) ? transferPrefix.trim() : "HOMESTAY";
+        Pattern pattern = Pattern.compile("(?i)(?:" + Pattern.quote(prefix) + "|HOMESTAY|HD|BOOKING)[\\s\\-_]*0*(\\d+)");
         Matcher matcher = pattern.matcher(content);
 
         if (matcher.find()) {
@@ -98,20 +130,70 @@ public class SepayPaymentService {
             Optional<Booking> optBooking = bookingRepository.findById(bookingId);
             if (optBooking.isPresent()) {
                 Booking booking = optBooking.get();
-                // Nếu đơn đang CHECKED_IN, tự động chuyển sang CHECKED_OUT và tạo hóa đơn
                 if ("CHECKED_IN".equals(booking.getStatus())) {
-                    Invoice invoice = invoiceService.checkOutAndCreateInvoice(bookingId, "Chuyển khoản SePay (VietQR)");
+                    Invoice invoice = invoiceService.checkOutAndCreateInvoice(bookingId, "QR SePay (MB Bank)");
                     invoice.setPaymentReference(payload.getReferenceCode() != null ? payload.getReferenceCode() : String.valueOf(payload.getId()));
                     invoiceRepository.save(invoice);
-                    log.info("SePay: Đã tự động tạo hóa đơn và thanh toán cho Booking #{}", bookingId);
-                    return true;
-                } else if ("BOOKED".equals(booking.getStatus())) {
-                    log.info("SePay: Nhận tiền đặt cọc cho Booking #{}", bookingId);
+                    log.info("SePay Webhook: Đã tự động tạo hóa đơn và chuyển trạng thái Đã thanh toán cho Booking #{}", bookingId);
                     return true;
                 }
             }
         }
 
         return true;
+    }
+
+    /**
+     * Chủ động kiểm tra lịch sử giao dịch từ SePay User API (nếu đã cấu hình sepay.api.key)
+     * Giúp tự động xác nhận thanh toán ngay cả khi chạy trên localhost không có public webhook.
+     */
+    @Transactional
+    public boolean checkTransactionFromSepayApi(Long bookingId, BigDecimal expectedAmount) {
+        if (sepayApiKey == null || sepayApiKey.trim().isEmpty()) {
+            return false;
+        }
+        Optional<Booking> optBooking = bookingRepository.findById(bookingId);
+        if (optBooking.isEmpty() || !"CHECKED_IN".equalsIgnoreCase(optBooking.get().getStatus())) {
+            return invoiceRepository.findByBookingId(bookingId).isPresent();
+        }
+
+        try {
+            String url = "https://my.sepay.vn/userapi/transactions/list?account_number="
+                    + URLEncoder.encode(bankAccount.trim(), StandardCharsets.UTF_8) + "&limit=20";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + sepayApiKey.trim())
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200 && response.body() != null) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode transactions = root.path("transactions");
+                if (transactions.isArray()) {
+                    String prefix = (transferPrefix != null && !transferPrefix.isBlank()) ? transferPrefix.trim() : "HOMESTAY";
+                    Pattern pattern = Pattern.compile("(?i)(?:" + Pattern.quote(prefix) + "|HOMESTAY|HD|BOOKING)\\s*0*" + bookingId + "(?!\\d)");
+
+                    for (JsonNode tx : transactions) {
+                        String txContent = tx.path("transaction_content").asText("");
+                        double amountIn = tx.path("amount_in").asDouble(0.0);
+                        String refCode = tx.path("reference_number").asText(tx.path("id").asText("SEPAY"));
+
+                        if (pattern.matcher(txContent).find() && amountIn >= expectedAmount.doubleValue()) {
+                            Invoice invoice = invoiceService.checkOutAndCreateInvoice(bookingId, "QR SePay (MB Bank)");
+                            invoice.setPaymentReference(refCode);
+                            invoiceRepository.save(invoice);
+                            log.info("SePay API Polling: Đã xác nhận giao dịch {} và chuyển Booking #{} sang Đã thanh toán!", refCode, bookingId);
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.debug("Không thể truy vấn SePay API: {}", ex.getMessage());
+        }
+        return false;
     }
 }
