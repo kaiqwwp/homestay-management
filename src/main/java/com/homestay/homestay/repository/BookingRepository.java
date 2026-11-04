@@ -43,5 +43,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     long countByCreatedAtGreaterThanEqual(LocalDateTime startOfDay);
 
-    long countByCheckIn(LocalDate today);
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.checkIn = :today")
+    long countByCheckIn(@Param("today") LocalDate today);
 }
