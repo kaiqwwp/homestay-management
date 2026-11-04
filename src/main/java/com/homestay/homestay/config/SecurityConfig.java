@@ -3,16 +3,28 @@ package com.homestay.homestay.config;
 import com.homestay.homestay.entity.User;
 import com.homestay.homestay.repository.UserRepository;
 import com.homestay.homestay.security.CustomOAuth2UserService;
+import com.homestay.homestay.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+
+import java.util.Collections;
+import java.util.UUID;
 
 @Configuration
 @EnableMethodSecurity
@@ -27,6 +39,10 @@ public class SecurityConfig {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    @Lazy
+    private UserService userService;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -35,8 +51,49 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler loginSuccessHandler() {
         return (request, response, authentication) -> {
-            String username = authentication.getName();
-            User user = userRepository.findByUsername(username).orElse(null);
+            User user = null;
+
+            // Nếu đăng nhập qua Google OAuth2 / OIDC thật từ accounts.google.com
+            if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+                String email = oAuth2User.getAttribute("email");
+                String name = oAuth2User.getAttribute("name");
+                if (email != null && !email.isBlank()) {
+                    String cleanEmail = email.trim().toLowerCase();
+                    user = userRepository.findByEmail(cleanEmail)
+                            .orElseGet(() -> userRepository.findByUsername(cleanEmail).orElse(null));
+                    if (user == null) {
+                        user = new User();
+                        user.setUsername(cleanEmail);
+                        user.setEmail(cleanEmail);
+                        String defaultName = (name != null && !name.isBlank())
+                                ? name.trim()
+                                : cleanEmail.substring(0, cleanEmail.indexOf('@'));
+                        user.setFullName(defaultName);
+                        user.setPassword(passwordEncoder().encode(UUID.randomUUID().toString()));
+                        user.setRole("CUSTOMER");
+                        user.setAuthProvider("GOOGLE");
+                        user = userRepository.save(user);
+                    }
+                    userService.syncOrCreateCustomerForUser(user, user.getEmail(), user.getPhone());
+
+                    // Đồng bộ Principal về username của hệ thống để mọi trang nhận diện chính xác
+                    UsernamePasswordAuthenticationToken sysAuth = new UsernamePasswordAuthenticationToken(
+                            user.getUsername(),
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+                    );
+                    SecurityContext sc = SecurityContextHolder.getContext();
+                    sc.setAuthentication(sysAuth);
+                    HttpSession session = request.getSession(true);
+                    session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, sc);
+                }
+            }
+
+            if (user == null) {
+                String username = authentication.getName();
+                user = userRepository.findByUsername(username).orElse(null);
+            }
+
             if (user != null && "CUSTOMER".equalsIgnoreCase(user.getRole()) && !user.hasCompleteProfile()) {
                 response.sendRedirect("/profile?requireUpdate=true");
                 return;
@@ -51,7 +108,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) // Hỗ trợ REST API và AJAX calls
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/", "/login", "/register", "/home", "/oauth2/**",
+                        "/", "/login", "/register", "/home", "/oauth2/**", "/login/oauth2/**",
                         "/css/**", "/js/**", "/images/**", "/uploads/**", 
                         "/error/**", "/403", "/404", "/500",
                         "/api/auth/**", "/api/payment/sepay-webhook", "/api/ai/**"

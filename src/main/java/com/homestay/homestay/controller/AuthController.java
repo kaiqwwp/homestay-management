@@ -130,7 +130,11 @@ public class AuthController {
     }
 
     @GetMapping("/oauth2/authorization/google")
-    public String googleChooserPage() {
+    public String googleChooserPage(Model model) {
+        var googleAccounts = userRepository.findAll().stream()
+                .filter(u -> u.getEmail() != null && !u.getEmail().isBlank())
+                .toList();
+        model.addAttribute("googleAccounts", googleAccounts);
         return "google-login";
     }
 
